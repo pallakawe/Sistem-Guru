@@ -49,10 +49,7 @@ export default function SettingsPage() {
                 <Label htmlFor="fullName">Nama Lengkap</Label>
                 <Input id="fullName" defaultValue="Budi Santoso, S.Pd" />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" defaultValue="budi@smkcontoh.sch.id" />
-              </div>
+
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="grid gap-2">
@@ -127,28 +124,6 @@ export default function SettingsPage() {
             </div>
           </div>
           <Button className="w-full sm:w-auto"><Save className="mr-2 h-4 w-4" /> Simpan</Button>
-        </CardContent>
-      </Card>
-
-      {/* Password Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Ubah Password</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-2">
-            <Label>Password Saat Ini</Label>
-            <Input type="password" />
-          </div>
-          <div className="grid gap-2">
-            <Label>Password Baru</Label>
-            <Input type="password" />
-          </div>
-          <div className="grid gap-2">
-            <Label>Konfirmasi Password Baru</Label>
-            <Input type="password" />
-          </div>
-          <Button variant="outline"><Save className="mr-2 h-4 w-4" /> Ubah Password</Button>
         </CardContent>
       </Card>
     </div>
