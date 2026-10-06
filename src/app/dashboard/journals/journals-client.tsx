@@ -56,9 +56,7 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
           <p className="text-muted-foreground">Dokumentasi kegiatan pembelajaran setiap pertemuan.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" /> Buat Jurnal</Button>
-          </DialogTrigger>
+          <DialogTrigger render={<Button><Plus className="mr-2 h-4 w-4" /> Buat Jurnal</Button>} />
           <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
             <form action={onSubmit}>
               <DialogHeader>

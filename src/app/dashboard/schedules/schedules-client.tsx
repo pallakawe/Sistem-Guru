@@ -94,9 +94,7 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
           <p className="text-muted-foreground">Kelola jadwal mengajar Anda per minggu.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" /> Tambah Jadwal</Button>
-          </DialogTrigger>
+          <DialogTrigger render={<Button><Plus className="mr-2 h-4 w-4" /> Tambah Jadwal</Button>} />
           <DialogContent className="sm:max-w-[425px]">
             <form action={onSubmit}>
               <DialogHeader>
