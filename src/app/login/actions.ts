@@ -1,14 +1,13 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 
 export async function login(formData: FormData) {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
 
   if (!email || !password) {
-    return { error: 'Email and Password are required' }
+    return { error: 'Email dan password wajib diisi.' }
   }
 
   const supabase = await createClient()
@@ -19,10 +18,13 @@ export async function login(formData: FormData) {
   })
 
   if (error) {
+    if (error.message.includes('Invalid login credentials')) {
+      return { error: 'Email atau password salah. Silakan coba lagi.' }
+    }
     return { error: error.message }
   }
 
-  redirect('/dashboard')
+  return { success: true, redirectTo: '/dashboard' }
 }
 
 export async function signup(formData: FormData) {
@@ -31,7 +33,11 @@ export async function signup(formData: FormData) {
   const fullName = formData.get('fullName') as string
 
   if (!email || !password || !fullName) {
-    return { error: 'All fields are required' }
+    return { error: 'Semua field wajib diisi.' }
+  }
+
+  if (password.length < 6) {
+    return { error: 'Password minimal 6 karakter.' }
   }
 
   const supabase = await createClient()
@@ -47,8 +53,11 @@ export async function signup(formData: FormData) {
   })
 
   if (error) {
+    if (error.message.includes('User already registered')) {
+      return { error: 'Email ini sudah terdaftar. Silakan masuk.' }
+    }
     return { error: error.message }
   }
 
-  redirect('/dashboard')
+  return { success: true, redirectTo: '/dashboard' }
 }

@@ -1,16 +1,17 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { BookOpen, AlertCircle } from 'lucide-react'
-import { login, signup } from './actions'
+import { login } from './actions'
 
 export default function LoginPage() {
-  const [isLogin, setIsLogin] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -20,11 +21,14 @@ export default function LoginPage() {
     const formData = new FormData(event.currentTarget)
 
     try {
-      const response = isLogin ? await login(formData) : await signup(formData)
+      const response = await login(formData)
       if (response?.error) {
         setError(response.error)
+      } else if (response?.success && response?.redirectTo) {
+        router.push(response.redirectTo)
       }
-    } catch {
+    } catch (err) {
+      console.error(err)
       setError('Terjadi kesalahan. Silakan coba lagi.')
     } finally {
       setLoading(false)
@@ -36,7 +40,6 @@ export default function LoginPage() {
       {/* Left Panel */}
       <div className="hidden lg:flex flex-col justify-between p-10 text-white relative overflow-hidden bg-zinc-900">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/30 via-purple-600/20 to-pink-600/20" />
-        {/* Decorative blobs */}
         <div className="absolute top-20 right-20 w-72 h-72 rounded-full bg-indigo-500/20 blur-3xl" />
         <div className="absolute bottom-20 left-10 w-64 h-64 rounded-full bg-purple-500/20 blur-3xl" />
 
@@ -76,7 +79,7 @@ export default function LoginPage() {
         </p>
       </div>
 
-      {/* Right Panel */}
+      {/* Right Panel — Login only */}
       <div className="flex items-center justify-center p-8">
         <div className="mx-auto w-full max-w-sm space-y-6">
           {/* Mobile logo */}
@@ -88,13 +91,9 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-2 text-center lg:text-left">
-            <h1 className="text-2xl font-bold">
-              {isLogin ? 'Masuk ke Akun' : 'Buat Akun Baru'}
-            </h1>
+            <h1 className="text-2xl font-bold">Masuk ke Akun</h1>
             <p className="text-muted-foreground text-sm">
-              {isLogin
-                ? 'Masukkan email dan password Anda untuk melanjutkan'
-                : 'Daftarkan diri sebagai guru di Sistem Guru'}
+              Masukkan email dan password untuk mengakses dashboard.
             </p>
           </div>
 
@@ -106,19 +105,6 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Nama Lengkap</Label>
-                <Input
-                  id="fullName"
-                  name="fullName"
-                  placeholder="Budi Santoso, S.Pd"
-                  type="text"
-                  autoComplete="name"
-                  required
-                />
-              </div>
-            )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -131,53 +117,22 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                {isLogin && (
-                  <a href="#" className="text-xs text-muted-foreground hover:text-primary transition-colors">
-                    Lupa password?
-                  </a>
-                )}
-              </div>
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 name="password"
                 type="password"
-                autoComplete={isLogin ? 'current-password' : 'new-password'}
+                autoComplete="current-password"
                 required
               />
             </div>
             <Button type="submit" className="w-full h-11" disabled={loading}>
-              {loading
-                ? (isLogin ? 'Memproses...' : 'Mendaftar...')
-                : (isLogin ? 'Masuk' : 'Daftar Sekarang')}
+              {loading ? 'Memproses...' : 'Masuk'}
             </Button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground">
-            {isLogin ? (
-              <>
-                Belum punya akun?{' '}
-                <button
-                  type="button"
-                  className="font-medium text-primary hover:underline underline-offset-4"
-                  onClick={() => { setIsLogin(false); setError(null) }}
-                >
-                  Daftar di sini
-                </button>
-              </>
-            ) : (
-              <>
-                Sudah punya akun?{' '}
-                <button
-                  type="button"
-                  className="font-medium text-primary hover:underline underline-offset-4"
-                  onClick={() => { setIsLogin(true); setError(null) }}
-                >
-                  Masuk di sini
-                </button>
-              </>
-            )}
+          <p className="text-center text-xs text-muted-foreground">
+            Belum punya akun? Hubungi administrator sekolah Anda.
           </p>
         </div>
       </div>
