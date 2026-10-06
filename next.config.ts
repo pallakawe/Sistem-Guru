@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Using webpack for Windows compatibility (WASM bindings only)
 };
 
 export default nextConfig;

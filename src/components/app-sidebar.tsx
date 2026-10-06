@@ -102,8 +102,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link href="/dashboard">
+            <SidebarMenuButton size="lg" render={<Link href="/dashboard" />}>
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <BookOpen className="size-4" />
                 </div>
@@ -111,7 +110,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <span className="truncate font-semibold">Sistem Guru</span>
                   <span className="truncate text-xs">Administrasi Terpadu</span>
                 </div>
-              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -122,11 +120,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             const isActive = pathname === item.url || pathname.startsWith(`${item.url}/`)
             return (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
-                  <Link href={item.url}>
+                <SidebarMenuButton isActive={isActive} tooltip={item.title} render={<Link href={item.url} />}>
                     <item.icon />
                     <span>{item.title}</span>
-                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )

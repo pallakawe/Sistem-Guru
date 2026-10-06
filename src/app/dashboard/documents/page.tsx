@@ -63,9 +63,7 @@ export default function DocumentsPage() {
           <p className="text-muted-foreground">Pusat penyimpanan dokumen administrasi Anda.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Upload className="mr-2 h-4 w-4" /> Upload Dokumen</Button>
-          </DialogTrigger>
+          <DialogTrigger render={<Button><Upload className="mr-2 h-4 w-4" /> Upload Dokumen</Button>} />
           <DialogContent className="sm:max-w-[480px]">
             <DialogHeader>
               <DialogTitle>Upload Dokumen</DialogTitle>
@@ -108,7 +106,7 @@ export default function DocumentsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Cari dokumen..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <Select value={filterCat} onValueChange={setFilterCat}>
+        <Select value={filterCat} onValueChange={(v) => setFilterCat(v ?? "all")}>
           <SelectTrigger className="w-full sm:w-48">
             <SelectValue placeholder="Semua Kategori" />
           </SelectTrigger>

@@ -26,7 +26,7 @@ const DUMMY_ASSESSMENTS = [
   { id: 4, title: "Proyek Akhir Semester", type: "Proyek", className: "X RPL 1", subject: "Informatika", weight: 25, createdAt: "2026-10-05" },
 ]
 
-const DUMMY_STUDENTS = [
+const DUMMY_STUDENTS: { id: number, name: string, scores: Record<number, number | null> }[] = [
   { id: 1, name: "Andi Prasetyo", scores: { 1: 85, 2: 90, 3: 78, 4: null } },
   { id: 2, name: "Bunga Lestari", scores: { 1: 92, 2: 88, 3: 85, 4: null } },
   { id: 3, name: "Cahyo Utomo", scores: { 1: 75, 2: 70, 3: 72, 4: null } },
@@ -67,9 +67,7 @@ export default function AssessmentsPage() {
           <p className="text-muted-foreground">Kelola komponen penilaian dan input nilai siswa.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" /> Buat Komponen Nilai</Button>
-          </DialogTrigger>
+          <DialogTrigger render={<Button><Plus className="mr-2 h-4 w-4" /> Buat Komponen Nilai</Button>} />
           <DialogContent className="sm:max-w-[480px]">
             <DialogHeader>
               <DialogTitle>Buat Komponen Penilaian</DialogTitle>

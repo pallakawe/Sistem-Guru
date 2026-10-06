@@ -56,11 +56,7 @@ export default function SchedulesPage() {
           <p className="text-muted-foreground">Kelola jadwal mengajar Anda per minggu.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" /> Tambah Jadwal
-            </Button>
-          </DialogTrigger>
+          <DialogTrigger render={<Button><Plus className="mr-2 h-4 w-4" /> Tambah Jadwal</Button>} />
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Tambah Jadwal Baru</DialogTitle>

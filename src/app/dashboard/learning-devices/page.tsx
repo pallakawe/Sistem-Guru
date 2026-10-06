@@ -64,9 +64,7 @@ export default function LearningDevicesPage() {
           <p className="text-muted-foreground">Kelola semua dokumen perangkat pembelajaran Anda.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Upload className="mr-2 h-4 w-4" /> Upload Dokumen</Button>
-          </DialogTrigger>
+          <DialogTrigger render={<Button><Upload className="mr-2 h-4 w-4" /> Upload Dokumen</Button>} />
           <DialogContent className="sm:max-w-[480px]">
             <DialogHeader>
               <DialogTitle>Upload Perangkat Pembelajaran</DialogTitle>

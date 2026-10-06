@@ -68,9 +68,7 @@ export default function MaterialsPage() {
           <p className="text-muted-foreground">Kelola semua bahan ajar dan materi pembelajaran.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" /> Tambah Bahan Ajar</Button>
-          </DialogTrigger>
+          <DialogTrigger render={<Button><Plus className="mr-2 h-4 w-4" /> Tambah Bahan Ajar</Button>} />
           <DialogContent className="sm:max-w-[520px] max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Tambah Bahan Ajar Baru</DialogTitle>
@@ -121,7 +119,7 @@ export default function MaterialsPage() {
               </div>
               <div className="grid gap-2">
                 <Label>Tipe File</Label>
-                <Select defaultValue="PDF" onValueChange={setFileType}>
+                <Select defaultValue="PDF" onValueChange={(v) => setFileType(v ?? "PDF")}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="PDF">PDF</SelectItem>

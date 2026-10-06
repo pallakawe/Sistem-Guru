@@ -49,9 +49,7 @@ export default function JournalsPage() {
           <p className="text-muted-foreground">Dokumentasi kegiatan pembelajaran setiap pertemuan.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" /> Buat Jurnal</Button>
-          </DialogTrigger>
+          <DialogTrigger render={<Button><Plus className="mr-2 h-4 w-4" /> Buat Jurnal</Button>} />
           <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Jurnal Mengajar Baru</DialogTitle>
