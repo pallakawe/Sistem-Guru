@@ -183,7 +183,7 @@ export default function MaterialsClient({
               <div className="grid gap-2 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label>Mata Pelajaran</Label>
-                  <Select name="subject_id" required>
+                  <Select name="subject_id" required items={subjects.map(subject => ({ value: subject.id, label: subject.name }))}>
                     <SelectTrigger><SelectValue placeholder="Pilih mapel" /></SelectTrigger>
                     <SelectContent>
                       {subjects.map((subject) => (
@@ -195,7 +195,7 @@ export default function MaterialsClient({
 
                 <div className="grid gap-2">
                   <Label>Kelas</Label>
-                  <Select name="class_id">
+                  <Select name="class_id" items={classes.map(item => ({ value: item.id, label: item.name }))}>
                     <SelectTrigger><SelectValue placeholder="Opsional" /></SelectTrigger>
                     <SelectContent>
                       {classes.map((item) => (
@@ -213,7 +213,13 @@ export default function MaterialsClient({
 
               <div className="grid gap-2">
                 <Label>Pertemuan</Label>
-                <Select name="meeting_id">
+                <Select
+                  name="meeting_id"
+                  items={meetings.map(meeting => ({
+                    value: meeting.id,
+                    label: `${meeting.classes?.name} · ${meeting.subjects?.name} · Pertemuan ${meeting.meeting_number}`
+                  }))}
+                >
                   <SelectTrigger><SelectValue placeholder="Opsional" /></SelectTrigger>
                   <SelectContent>
                     {meetings.map((meeting) => (
