@@ -5,7 +5,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Clock, MapPin, BookOpen, Loader2 } from "lucide-react"
+import { Plus, Clock, MapPin, BookOpen, Loader2, Pencil, Trash2 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -24,7 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { createSchedule } from "./actions"
+import { createSchedule, updateSchedule, deleteSchedule } from "./actions"
+import { useToast } from "@/hooks/use-toast"
 
 const DAYS = [
   { value: "1", label: "Senin" },
@@ -52,6 +53,9 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [editingSchedule, setEditingSchedule] = useState<any | null>(null)
+  const [scheduleToDelete, setScheduleToDelete] = useState<any | null>(null)
+  const { toast } = useToast()
 
   const getDayName = (dayValue: number) => {
     return DAYS.find(d => parseInt(d.value) === dayValue)?.label || ""
@@ -77,6 +81,34 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
 
     setOpen(false)
     setIsLoading(false)
+  }
+
+  async function onEdit(formData: FormData) {
+    if (!editingSchedule) return
+    setIsLoading(true)
+    const result = await updateSchedule(editingSchedule.id, formData)
+    setIsLoading(false)
+    if (result?.error) {
+      toast({ title: "Gagal", description: result.error, variant: "destructive" })
+      return
+    }
+    setEditingSchedule(null)
+    toast({ title: "Berhasil", description: "Jadwal diperbarui." })
+    window.location.reload()
+  }
+
+  async function onDelete() {
+    if (!scheduleToDelete) return
+    setIsLoading(true)
+    const result = await deleteSchedule(scheduleToDelete.id)
+    setIsLoading(false)
+    if (result?.error) {
+      toast({ title: "Gagal", description: result.error, variant: "destructive" })
+      return
+    }
+    setScheduleToDelete(null)
+    toast({ title: "Dihapus", description: "Jadwal berhasil dihapus." })
+    window.location.reload()
   }
 
   const formatTime = (timeString: string) => {
@@ -175,6 +207,61 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
         </Dialog>
       </div>
 
+      <Dialog open={!!editingSchedule} onOpenChange={(value) => !value && setEditingSchedule(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <form key={editingSchedule?.id} action={onEdit}>
+            <DialogHeader>
+              <DialogTitle>Edit Jadwal</DialogTitle>
+              <DialogDescription>Perbarui detail jadwal mengajar.</DialogDescription>
+            </DialogHeader>
+            {editingSchedule && (
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label>Hari</Label>
+                  <Select name="dayOfWeek" defaultValue={String(editingSchedule.day_of_week)} items={DAYS}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{DAYS.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2"><Label>Jam Mulai</Label><Input name="startTime" type="time" defaultValue={formatTime(editingSchedule.start_time)} required /></div>
+                  <div className="grid gap-2"><Label>Jam Selesai</Label><Input name="endTime" type="time" defaultValue={formatTime(editingSchedule.end_time)} required /></div>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Kelas</Label>
+                  <Select name="classId" defaultValue={editingSchedule.classes?.id} items={classes.map(x => ({ value: x.id, label: x.name }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{classes.map(x => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Mata Pelajaran</Label>
+                  <Select name="subjectId" defaultValue={editingSchedule.subjects?.id} items={subjects.map(x => ({ value: x.id, label: x.name }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{subjects.map(x => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2"><Label>Ruangan</Label><Input name="room" defaultValue={editingSchedule.room || ""} /></div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditingSchedule(null)}>Batal</Button>
+              <Button type="submit" disabled={isLoading}>{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Simpan</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!scheduleToDelete} onOpenChange={(value) => !value && setScheduleToDelete(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Hapus Jadwal?</DialogTitle><DialogDescription>Jadwal ini akan dihapus permanen.</DialogDescription></DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setScheduleToDelete(null)}>Batal</Button>
+            <Button variant="destructive" onClick={onDelete} disabled={isLoading}>{isLoading ? "Menghapus..." : "Hapus"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Today's Schedule */}
       {todaySchedules.length > 0 && (
         <Card className="border-primary/20 bg-primary/5">
@@ -237,6 +324,14 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
                             <span>{s.room}</span>
                           </div>
                         )}
+                        <div className="mt-2 flex justify-end gap-1">
+                          <Button type="button" variant="ghost" size="icon-sm" onClick={() => setEditingSchedule(s)} title="Edit jadwal">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button type="button" variant="ghost" size="icon-sm" className="text-destructive hover:text-destructive" onClick={() => setScheduleToDelete(s)} title="Hapus jadwal">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
