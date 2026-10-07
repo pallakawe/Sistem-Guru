@@ -24,6 +24,8 @@ export default function SettingsClient({ profile, school, academicYears, userEma
 
   const initials = (profile.full_name || userEmail || "?").split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase()
   const activeYear = academicYears.find((y: any) => y.is_active)
+  const [selectedAcademicYearId, setSelectedAcademicYearId] = useState(activeYear?.id || "")
+  const selectedAcademicYear = academicYears.find((y: any) => y.id === selectedAcademicYearId)
 
   function handleSaveProfile(formData: FormData) {
     startTransition(async () => {
@@ -149,8 +151,18 @@ export default function SettingsClient({ profile, school, academicYears, userEma
             <form action={handleSaveAcademicYear}>
               <div className="grid gap-2">
                 <Label>Pilih Tahun Ajaran yang Aktif</Label>
-                <Select name="academicYearId" defaultValue={activeYear?.id || ""}>
-                  <SelectTrigger><SelectValue placeholder="Pilih Tahun Ajaran" /></SelectTrigger>
+                <Select
+                  name="academicYearId"
+                  value={selectedAcademicYearId}
+                  onValueChange={(value) => setSelectedAcademicYearId(value ?? "")}
+                >
+                  <SelectTrigger className="w-full">
+                    <span className="flex-1 truncate text-left">
+                      {selectedAcademicYear
+                        ? `${selectedAcademicYear.name} - ${selectedAcademicYear.semester}`
+                        : "Pilih Tahun Ajaran"}
+                    </span>
+                  </SelectTrigger>
                   <SelectContent>
                     {academicYears.map((y: any) => (
                       <SelectItem key={y.id} value={y.id}>{y.name} - {y.semester}</SelectItem>
