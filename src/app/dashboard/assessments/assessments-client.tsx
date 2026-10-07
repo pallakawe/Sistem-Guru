@@ -222,14 +222,14 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="classId">Kelas</Label>
-                  <Select name="classId" required>
+                  <Select name="classId" required items={classes.map(c => ({ value: c.id, label: c.name }))}>
                     <SelectTrigger id="classId"><SelectValue placeholder="Pilih Kelas" /></SelectTrigger>
                     <SelectContent>{classes.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="subjectId">Mata Pelajaran</Label>
-                  <Select name="subjectId" required>
+                  <Select name="subjectId" required items={subjects.map(s => ({ value: s.id, label: s.name }))}>
                     <SelectTrigger id="subjectId"><SelectValue placeholder="Pilih Mapel" /></SelectTrigger>
                     <SelectContent>{subjects.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                   </Select>
