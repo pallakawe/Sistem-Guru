@@ -79,3 +79,27 @@ export async function deleteDocument(id: string) {
   revalidatePath('/dashboard/documents')
   return { success: true }
 }
+
+
+export async function updateDocument(id: string, formData: FormData) {
+  const supabase = await createClient()
+  const { data: userData } = await supabase.auth.getUser()
+  if (!userData?.user) return { error: 'Unauthorized' }
+
+  const title = String(formData.get('title') || '').trim()
+  const category = String(formData.get('category') || '').trim()
+  if (!title || !category) return { error: 'Judul dan kategori wajib diisi.' }
+
+  const { data, error } = await supabase.from('documents')
+    .update({ title, category })
+    .eq('id', id)
+    .eq('teacher_id', userData.user.id)
+    .select('id')
+    .maybeSingle()
+
+  if (error) return { error: error.message }
+  if (!data) return { error: 'Dokumen tidak ditemukan.' }
+
+  revalidatePath('/dashboard/documents')
+  return { success: true }
+}
