@@ -131,3 +131,55 @@ export async function deleteMaterial(id: string) {
   revalidatePath('/dashboard/materials')
   return { success: true }
 }
+
+
+export async function updateMaterial(id: string, formData: FormData) {
+  const supabase = await createClient()
+  const { data: userData } = await supabase.auth.getUser()
+  if (!userData?.user) return { error: 'Unauthorized' }
+
+  const title = String(formData.get('title') || '').trim()
+  const description = String(formData.get('description') || '').trim()
+  const subjectId = String(formData.get('subject_id') || '').trim()
+  const classId = String(formData.get('class_id') || '').trim()
+  const topic = String(formData.get('topic') || '').trim()
+  const meetingId = String(formData.get('meeting_id') || '').trim()
+
+  if (!title || !subjectId) return { error: 'Judul dan mata pelajaran wajib diisi.' }
+
+  const { data: ownedSubject } = await supabase.from('subjects').select('id')
+    .eq('id', subjectId).eq('teacher_id', userData.user.id).maybeSingle()
+  if (!ownedSubject) return { error: 'Mata pelajaran tidak valid.' }
+
+  if (classId) {
+    const { data: ownedClass } = await supabase.from('classes').select('id')
+      .eq('id', classId).eq('teacher_id', userData.user.id).maybeSingle()
+    if (!ownedClass) return { error: 'Kelas tidak valid.' }
+  }
+
+  if (meetingId) {
+    const { data: ownedMeeting } = await supabase.from('meetings').select('id')
+      .eq('id', meetingId).eq('teacher_id', userData.user.id).maybeSingle()
+    if (!ownedMeeting) return { error: 'Pertemuan tidak valid.' }
+  }
+
+  const { data, error } = await supabase.from('learning_materials')
+    .update({
+      title,
+      description: description || null,
+      subject_id: subjectId,
+      class_id: classId || null,
+      topic: topic || null,
+      meeting_id: meetingId || null,
+    })
+    .eq('id', id)
+    .eq('teacher_id', userData.user.id)
+    .select('id')
+    .maybeSingle()
+
+  if (error) return { error: error.message }
+  if (!data) return { error: 'Bahan ajar tidak ditemukan.' }
+
+  revalidatePath('/dashboard/materials')
+  return { success: true }
+}
