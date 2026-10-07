@@ -8,11 +8,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Users, Loader2, Pencil, Trash2, ChevronLeft } from "lucide-react"
+import { Plus, Users, Loader2, Pencil, Trash2, ChevronLeft, FileSpreadsheet, FileDown } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { addClass, addStudent, getStudentsByClass, updateStudent, updateClass, deleteClass, deleteStudent } from "./actions"
 import { useToast } from "@/hooks/use-toast"
+import { exportRowsToExcel, exportRowsToPdf } from "@/lib/export-data"
 
 const GRADE_LEVELS = ["1", "2", "3", "4", "5", "6"]
 
@@ -133,6 +134,22 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
     })
   }
 
+  const studentExport = {
+    title: selectedClass ? `Daftar Siswa - ${selectedClass.name}` : "Daftar Siswa",
+    fileName: selectedClass ? `daftar-siswa-${selectedClass.name}` : "daftar-siswa",
+    subtitle: selectedClass ? `Jumlah siswa: ${students.length}` : undefined,
+    headers: ["No", "NIS", "NISN", "Nama Lengkap", "L/P", "No. Absen", "Status"],
+    rows: students.map((s, i) => [
+      i + 1,
+      s.nis || "-",
+      s.nisn || "-",
+      s.full_name,
+      s.gender || "-",
+      s.student_number || "-",
+      s.is_active ? "Aktif" : "Tidak Aktif",
+    ]),
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -154,9 +171,21 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
             <Plus className="mr-2 h-4 w-4" /> Tambah Kelas
           </Button>
         ) : (
-          <Button onClick={() => setOpenAddStudent(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Tambah Siswa
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            {students.length > 0 && (
+              <>
+                <Button variant="outline" onClick={() => exportRowsToExcel(studentExport)}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel
+                </Button>
+                <Button variant="outline" onClick={() => exportRowsToPdf(studentExport)}>
+                  <FileDown className="mr-2 h-4 w-4" /> PDF
+                </Button>
+              </>
+            )}
+            <Button onClick={() => setOpenAddStudent(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Tambah Siswa
+            </Button>
+          </div>
         )}
       </div>
 

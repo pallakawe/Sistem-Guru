@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Plus, BookOpen, Calendar, Eye, Loader2, Pencil, Trash2 } from "lucide-react"
+import { Plus, BookOpen, Calendar, Eye, Loader2, Pencil, Trash2, FileSpreadsheet, FileDown } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,7 @@ import { format, parseISO } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
 import { createJournal, updateJournal, deleteJournal } from "./actions"
 import { useToast } from "@/hooks/use-toast"
+import { exportRowsToExcel, exportRowsToPdf } from "@/lib/export-data"
 
 export default function JournalsClient({ initialJournals, classes, subjects }: { 
   initialJournals: any[], 
@@ -81,6 +82,26 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
     window.location.reload()
   }
 
+  const journalExport = {
+    title: "Jurnal Mengajar",
+    fileName: "jurnal-mengajar",
+    subtitle: `Total jurnal: ${initialJournals.length}`,
+    headers: ["No", "Tanggal", "Kelas", "Mata Pelajaran", "Pertemuan", "Topik", "Metode", "Kendala", "Tindak Lanjut"],
+    rows: initialJournals.map((journal, index) => [
+      index + 1,
+      journal.meetings?.date
+        ? format(parseISO(journal.meetings.date), "dd/MM/yyyy")
+        : "-",
+      journal.meetings?.classes?.name || "-",
+      journal.meetings?.subjects?.name || "-",
+      journal.meetings?.meeting_number || "-",
+      journal.topic || "-",
+      journal.method || "-",
+      journal.obstacles || "-",
+      journal.follow_up || "-",
+    ]),
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -88,6 +109,17 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
           <h1 className="text-3xl font-bold tracking-tight">Jurnal Mengajar</h1>
           <p className="text-muted-foreground">Dokumentasi kegiatan pembelajaran setiap pertemuan.</p>
         </div>
+        <div className="flex flex-wrap justify-end gap-2">
+          {initialJournals.length > 0 && (
+            <>
+              <Button variant="outline" onClick={() => exportRowsToExcel(journalExport)}>
+                <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel
+              </Button>
+              <Button variant="outline" onClick={() => exportRowsToPdf(journalExport)}>
+                <FileDown className="mr-2 h-4 w-4" /> PDF
+              </Button>
+            </>
+          )}
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger render={<Button><Plus className="mr-2 h-4 w-4" /> Buat Jurnal</Button>} />
           <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
@@ -169,6 +201,7 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

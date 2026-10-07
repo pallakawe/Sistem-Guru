@@ -7,10 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { format, parseISO } from "date-fns"
-import { CheckCircle2, Loader2, Save } from "lucide-react"
+import { CheckCircle2, Loader2, Save, FileSpreadsheet, FileDown } from "lucide-react"
 import { id as idLocale } from "date-fns/locale"
 import { getMeetingStudents, saveAttendance } from "./actions"
 import { useToast } from "@/hooks/use-toast"
+import { exportRowsToExcel, exportRowsToPdf } from "@/lib/export-data"
 
 export default function AttendanceClient({ meetings }: { meetings: any[] }) {
   const [selectedMeetingId, setSelectedMeetingId] = useState<string>("")
@@ -79,6 +80,25 @@ export default function AttendanceClient({ meetings }: { meetings: any[] }) {
     })
   }
 
+  const attendanceExport = {
+    title: selectedMeeting
+      ? `Absensi - ${selectedMeeting.classes?.name}`
+      : "Absensi",
+    fileName: selectedMeeting
+      ? `absensi-${selectedMeeting.classes?.name}-pertemuan-${selectedMeeting.meeting_number}`
+      : "absensi",
+    subtitle: selectedMeeting
+      ? `${selectedMeeting.subjects?.name} · Pertemuan ${selectedMeeting.meeting_number} · ${format(parseISO(selectedMeeting.date), "dd MMMM yyyy", { locale: idLocale })}`
+      : undefined,
+    headers: ["No", "No. Absen", "Nama Siswa", "Status"],
+    rows: students.map((student, index) => [
+      index + 1,
+      student.student_number || "-",
+      student.full_name,
+      ({ H: "Hadir", S: "Sakit", I: "Izin", A: "Alpa" } as Record<string, string>)[student.status] || student.status,
+    ]),
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -145,9 +165,17 @@ export default function AttendanceClient({ meetings }: { meetings: any[] }) {
               </CardDescription>
             </div>
             {students.length > 0 && (
-              <Button variant="secondary" onClick={setAllPresent}>
-                <CheckCircle2 className="mr-2 h-4 w-4" /> Hadir Semua
-              </Button>
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button variant="outline" onClick={() => exportRowsToExcel(attendanceExport)}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel
+                </Button>
+                <Button variant="outline" onClick={() => exportRowsToPdf(attendanceExport)}>
+                  <FileDown className="mr-2 h-4 w-4" /> PDF
+                </Button>
+                <Button variant="secondary" onClick={setAllPresent}>
+                  <CheckCircle2 className="mr-2 h-4 w-4" /> Hadir Semua
+                </Button>
+              </div>
             )}
           </CardHeader>
           <CardContent>

@@ -10,10 +10,11 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, GraduationCap, ChevronLeft, Loader2, Save, Pencil, Trash2 } from "lucide-react"
+import { Plus, GraduationCap, ChevronLeft, Loader2, Save, Pencil, Trash2, FileSpreadsheet, FileDown } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { createAssessment, getAssessmentScores, saveScores, updateAssessment, deleteAssessment } from "./actions"
 import { useToast } from "@/hooks/use-toast"
+import { exportRowsToExcel, exportRowsToPdf } from "@/lib/export-data"
 
 const ASSESSMENT_TYPES = ["Tugas", "Kuis", "Asesmen Formatif", "Asesmen Sumatif", "Proyek", "Praktik", "UTS/STS", "UAS/SAS"]
 
@@ -110,6 +111,19 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
     })
   }
 
+  const scoreExport = selectedAssessment ? {
+    title: `Daftar Nilai - ${selectedAssessment.title}`,
+    fileName: `nilai-${selectedAssessment.classes?.name || "kelas"}-${selectedAssessment.title}`,
+    subtitle: `${selectedAssessment.classes?.name || ""} · ${selectedAssessment.subjects?.name || ""} · Bobot ${selectedAssessment.weight || 0}%`,
+    headers: ["No", "No. Absen", "Nama Siswa", "Nilai"],
+    rows: students.map((student, index) => [
+      index + 1,
+      student.student_number || "-",
+      student.full_name,
+      localScores[student.id] || "0",
+    ]),
+  } : null
+
   if (selectedAssessment) {
     return (
       <div className="flex flex-col gap-6">
@@ -119,6 +133,16 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
           </Button>
           <h1 className="text-3xl font-bold tracking-tight">Input Nilai: {selectedAssessment.title}</h1>
           <p className="text-muted-foreground">{selectedAssessment.classes?.name} · {selectedAssessment.subjects?.name} · Bobot {selectedAssessment.weight}%</p>
+          {students.length > 0 && scoreExport && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => exportRowsToExcel(scoreExport)}>
+                <FileSpreadsheet className="mr-2 h-4 w-4" /> Export Excel
+              </Button>
+              <Button variant="outline" onClick={() => exportRowsToPdf(scoreExport)}>
+                <FileDown className="mr-2 h-4 w-4" /> Export PDF
+              </Button>
+            </div>
+          )}
         </div>
 
         <Card>
