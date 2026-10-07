@@ -106,31 +106,85 @@ export async function saveAcademicYear(formData: FormData) {
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { error: 'Unauthorized' }
 
-  const academicYearId = formData.get('academicYearId') as string
-  const yearName = formData.get('yearName') as string
-  const semester = formData.get('semester') as string
+  const academicYearId = String(formData.get('academicYearId') || '').trim()
+  const yearName = String(formData.get('yearName') || '').trim()
+  const semester = String(formData.get('semester') || '').trim()
 
   if (academicYearId) {
-    await supabase.from('academic_years').update({ is_active: false }).eq('teacher_id', userData.user.id)
-    await supabase.from('academic_years').update({ is_active: true }).eq('id', academicYearId).eq('teacher_id', userData.user.id)
-    await supabase.from('profiles').update({ active_academic_year_id: academicYearId }).eq('id', userData.user.id)
+    const { data: selectedYear, error: selectedError } = await supabase
+      .from('academic_years')
+      .select('id')
+      .eq('id', academicYearId)
+      .eq('teacher_id', userData.user.id)
+      .maybeSingle()
+
+    if (selectedError) return { error: selectedError.message }
+    if (!selectedYear) return { error: 'Tahun ajaran tidak valid.' }
+
+    const { error: deactivateError } = await supabase
+      .from('academic_years')
+      .update({ is_active: false })
+      .eq('teacher_id', userData.user.id)
+    if (deactivateError) return { error: deactivateError.message }
+
+    const { error: activateError } = await supabase
+      .from('academic_years')
+      .update({ is_active: true })
+      .eq('id', academicYearId)
+      .eq('teacher_id', userData.user.id)
+    if (activateError) return { error: activateError.message }
+
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ active_academic_year_id: academicYearId })
+      .eq('id', userData.user.id)
+    if (profileError) return { error: profileError.message }
   } else if (yearName && semester) {
-    await supabase.from('academic_years').update({ is_active: false }).eq('teacher_id', userData.user.id)
+    if (!['Ganjil', 'Genap'].includes(semester)) return { error: 'Semester tidak valid.' }
 
-    const { data: newYear, error } = await supabase.from('academic_years').insert({
-      name: yearName,
-      semester,
-      is_active: true,
-      teacher_id: userData.user.id
-    }).select('id').single()
+    const { data: newYear, error: insertError } = await supabase
+      .from('academic_years')
+      .insert({
+        name: yearName,
+        semester,
+        is_active: false,
+        teacher_id: userData.user.id
+      })
+      .select('id')
+      .single()
 
-    if (error) return { error: error.message }
+    if (insertError) return { error: insertError.message }
 
-    if (newYear) {
-      await supabase.from('profiles').update({ active_academic_year_id: newYear.id }).eq('id', userData.user.id)
+    const { error: deactivateError } = await supabase
+      .from('academic_years')
+      .update({ is_active: false })
+      .eq('teacher_id', userData.user.id)
+      .neq('id', newYear.id)
+
+    if (deactivateError) {
+      await supabase.from('academic_years').delete().eq('id', newYear.id).eq('teacher_id', userData.user.id)
+      return { error: deactivateError.message }
     }
+
+    const { error: activateError } = await supabase
+      .from('academic_years')
+      .update({ is_active: true })
+      .eq('id', newYear.id)
+      .eq('teacher_id', userData.user.id)
+
+    if (activateError) return { error: activateError.message }
+
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ active_academic_year_id: newYear.id })
+      .eq('id', userData.user.id)
+
+    if (profileError) return { error: profileError.message }
+  } else {
+    return { error: 'Pilih atau buat tahun ajaran terlebih dahulu.' }
   }
 
   revalidatePath('/dashboard/settings')
+  revalidatePath('/dashboard')
   return { success: true }
 }
