@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -36,11 +37,19 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      className="min-h-screen grid lg:grid-cols-2 bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: "url('/login-background.jpg')" }}
-    >
-      <div className="fixed inset-0 bg-black/10" />
+    <div className="relative min-h-screen overflow-hidden">
+      <Image
+        src="/login-background.jpg"
+        alt=""
+        fill
+        priority
+        quality={100}
+        sizes="100vw"
+        className="object-cover object-center"
+      />
+      <div className="absolute inset-0 bg-black/10" />
+
+      <div className="relative z-10 min-h-screen grid lg:grid-cols-2">
 
       {/* Left Panel */}
       <div className="hidden lg:flex flex-col justify-between p-10 text-white relative overflow-hidden">
@@ -141,5 +150,6 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  </div>
   )
 }
