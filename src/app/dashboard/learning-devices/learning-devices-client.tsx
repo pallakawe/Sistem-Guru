@@ -9,11 +9,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, Download, FileText, Search, Trash2, FolderOpen, Loader2 } from "lucide-react"
+import { Upload, Download, FileText, Search, Trash2, FolderOpen, Loader2, Pencil } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { format, parseISO } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
-import { createLearningDevice, deleteLearningDevice } from "./actions"
+import { createLearningDevice, deleteLearningDevice, updateLearningDevice } from "./actions"
 import { useToast } from "@/hooks/use-toast"
 
 const DEVICE_CATEGORIES = ["Modul Ajar", "ATP", "CP", "TP", "KKTP", "Program Tahunan", "Program Semester", "Silabus", "RPP", "Perangkat Evaluasi"]
@@ -28,6 +28,7 @@ export default function LearningDevicesClient({ initialDevices }: { initialDevic
   const [searchQuery, setSearchQuery] = useState("")
   const [open, setOpen] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [editingDevice, setEditingDevice] = useState<any | null>(null)
   const [isPending, startTransition] = useTransition()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
@@ -42,6 +43,20 @@ export default function LearningDevicesClient({ initialDevices }: { initialDevic
         toast({ title: "Berhasil!", description: "Perangkat pembelajaran berhasil diunggah." })
         setOpen(false)
         setSelectedFile(null)
+        window.location.reload()
+      }
+    })
+  }
+
+  function handleEdit(formData: FormData) {
+    if (!editingDevice) return
+    startTransition(async () => {
+      const result = await updateLearningDevice(editingDevice.id, formData)
+      if (result.error) {
+        toast({ title: "Gagal", description: result.error, variant: "destructive" })
+      } else {
+        setEditingDevice(null)
+        toast({ title: "Berhasil", description: "Perangkat pembelajaran diperbarui." })
         window.location.reload()
       }
     })
@@ -97,6 +112,7 @@ export default function LearningDevicesClient({ initialDevices }: { initialDevic
                   <Download className="h-4 w-4" />
                 </Button>
               )}
+              <Button variant="ghost" size="sm" onClick={() => setEditingDevice(d)}><Pencil className="h-4 w-4" /></Button>
               <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDelete(d.id)}>
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -136,6 +152,27 @@ export default function LearningDevicesClient({ initialDevices }: { initialDevic
         ))}
       </Tabs>
 
+      <Dialog open={!!editingDevice} onOpenChange={(value) => !value && setEditingDevice(null)}>
+        <DialogContent className="sm:max-w-[480px]">
+          <form key={editingDevice?.id} action={handleEdit}>
+            <DialogHeader><DialogTitle>Edit Perangkat Pembelajaran</DialogTitle><DialogDescription>Ubah judul atau kategori tanpa mengunggah ulang file.</DialogDescription></DialogHeader>
+            {editingDevice && (
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2"><Label>Judul Dokumen</Label><Input name="title" defaultValue={editingDevice.title} required /></div>
+                <div className="grid gap-2">
+                  <Label>Kategori</Label>
+                  <Select name="category" defaultValue={editingDevice.category} items={DEVICE_CATEGORIES.map(x => ({ value: x, label: x }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{DEVICE_CATEGORIES.map(x => <SelectItem key={x} value={x}>{x}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setEditingDevice(null)}>Batal</Button><Button type="submit" disabled={isPending}>Simpan</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Upload Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[480px]">
@@ -157,7 +194,7 @@ export default function LearningDevicesClient({ initialDevices }: { initialDevic
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label>File (Opsional)</Label>
+                <Label>File</Label>
                 <div
                   className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors"
                   onClick={() => fileInputRef.current?.click()}
