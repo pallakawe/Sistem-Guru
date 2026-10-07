@@ -182,3 +182,51 @@ export async function deleteClass(classId: string) {
   revalidatePath('/dashboard/classes')
   return { success: true }
 }
+
+
+export async function deleteStudent(studentId: string) {
+  const supabase = await createClient()
+  const { data: userData } = await supabase.auth.getUser()
+  if (!userData?.user) return { error: 'Unauthorized' }
+
+  const { data: student, error: studentError } = await supabase
+    .from('students')
+    .select('id, class_id')
+    .eq('id', studentId)
+    .eq('teacher_id', userData.user.id)
+    .maybeSingle()
+
+  if (studentError) return { error: studentError.message }
+  if (!student) return { error: 'Siswa tidak ditemukan.' }
+
+  const [{ count: attendanceCount, error: attendanceError }, { count: scoreCount, error: scoreError }] = await Promise.all([
+    supabase.from('attendance_records').select('id', { count: 'exact', head: true }).eq('student_id', studentId),
+    supabase.from('assessment_scores').select('id', { count: 'exact', head: true }).eq('student_id', studentId),
+  ])
+
+  if (attendanceError || scoreError) return { error: (attendanceError || scoreError)?.message || 'Gagal memeriksa data siswa.' }
+
+  if ((attendanceCount || 0) > 0 || (scoreCount || 0) > 0) {
+    const { error: deactivateError } = await supabase
+      .from('students')
+      .update({ is_active: false })
+      .eq('id', studentId)
+      .eq('teacher_id', userData.user.id)
+
+    if (deactivateError) return { error: deactivateError.message }
+
+    revalidatePath('/dashboard/classes')
+    return { success: true, deactivated: true }
+  }
+
+  const { error } = await supabase
+    .from('students')
+    .delete()
+    .eq('id', studentId)
+    .eq('teacher_id', userData.user.id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/dashboard/classes')
+  return { success: true, deactivated: false }
+}
