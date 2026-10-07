@@ -87,7 +87,7 @@ export default function LoginPage() {
         </div>
 
         <p className="relative z-20 text-xs text-zinc-500">
-          © 2026 Sistem Guru. Dibuat untuk kemudahan guru Indonesia.
+          © 2026 Sistem Guru. Dibuat Oleh Acid.
         </p>
       </div>
 
@@ -145,7 +145,7 @@ export default function LoginPage() {
           </form>
 
           <p className="text-center text-xs text-muted-foreground">
-            Belum punya akun? Hubungi administrator sekolah Anda.
+            Belum punya akun? Hubungi administrator Website).
           </p>
         </div>
       </div>
