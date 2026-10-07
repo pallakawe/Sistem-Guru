@@ -32,7 +32,8 @@ const DAYS = [
   { value: "3", label: "Rabu" },
   { value: "4", label: "Kamis" },
   { value: "5", label: "Jumat" },
-  { value: "6", label: "Sabtu" }
+  { value: "6", label: "Sabtu" },
+  { value: "7", label: "Minggu" }
 ]
 
 const SUBJECT_COLORS = [
@@ -56,9 +57,10 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
     return DAYS.find(d => parseInt(d.value) === dayValue)?.label || ""
   }
 
-  const todayIndex = new Date().getDay() // 0 is Sunday, 1 is Monday
+  const jsDay = new Date().getDay() // 0 = Minggu
+  const todayIndex = jsDay === 0 ? 7 : jsDay
   const todayLabel = getDayName(todayIndex)
-  
+
   const todaySchedules = initialSchedules.filter(s => s.day_of_week === todayIndex)
 
   async function onSubmit(formData: FormData) {
@@ -107,7 +109,7 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
                 {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
                 <div className="grid gap-2">
                   <Label htmlFor="dayOfWeek">Hari</Label>
-                  <Select name="dayOfWeek" required>
+                  <Select name="dayOfWeek" required items={DAYS}>
                     <SelectTrigger id="dayOfWeek">
                       <SelectValue placeholder="Pilih Hari" />
                     </SelectTrigger>
@@ -128,7 +130,7 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="classId">Kelas</Label>
-                  <Select name="classId" required>
+                  <Select name="classId" required items={classes.map(c => ({ value: c.id, label: c.name }))}>
                     <SelectTrigger id="classId">
                       <SelectValue placeholder="Pilih Kelas" />
                     </SelectTrigger>
@@ -143,7 +145,7 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="subjectId">Mata Pelajaran</Label>
-                  <Select name="subjectId" required>
+                  <Select name="subjectId" required items={subjects.map(s => ({ value: s.id, label: s.name }))}>
                     <SelectTrigger id="subjectId">
                       <SelectValue placeholder="Pilih Mata Pelajaran" />
                     </SelectTrigger>
