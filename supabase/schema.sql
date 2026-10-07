@@ -6,9 +6,19 @@ create table if not exists schools (
   id uuid default uuid_generate_v4() primary key,
   name text not null,
   address text,
+  teacher_id uuid references auth.users(id) on delete cascade not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+alter table schools enable row level security;
+do $ begin
+  if not exists (select 1 from pg_policies where tablename='schools' and policyname='Teachers can manage own school') then
+    create policy "Teachers can manage own school" on schools
+      for all to authenticated
+      using ((select auth.uid()) = teacher_id)
+      with check ((select auth.uid()) = teacher_id);
+  end if;
+end $;
 
 -- Table: profiles (Teacher profiles extending auth.users)
 create table if not exists profiles (
@@ -311,7 +321,11 @@ begin
   on conflict (id) do nothing;
   return new;
 end;
-$$ language plpgsql security definer;
+$ language plpgsql security definer set search_path = '';
+
+revoke all on function public.handle_new_user() from public;
+revoke all on function public.handle_new_user() from anon;
+revoke all on function public.handle_new_user() from authenticated;
 
 -- Trigger for new user (drop first to avoid duplicate)
 drop trigger if exists on_auth_user_created on auth.users;
