@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { BookOpen, AlertCircle } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 import { login } from './actions'
 
 export default function LoginPage() {
@@ -56,9 +56,14 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-gradient-to-r from-slate-950/70 via-slate-950/25 to-transparent" />
 
         <div className="relative z-20 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-            <BookOpen className="h-5 w-5 text-primary-foreground" />
-          </div>
+          <Image
+            src="/logo-sistem-guru.png"
+            alt="Logo Sistem Guru"
+            width={44}
+            height={44}
+            priority
+            className="h-11 w-11 object-contain"
+          />
           <span className="text-xl font-bold tracking-tight">Sistem Guru</span>
         </div>
 
@@ -97,9 +102,13 @@ export default function LoginPage() {
         <div className="relative mx-auto w-full max-w-sm space-y-6 rounded-2xl border border-white/50 bg-white/88 p-6 shadow-2xl backdrop-blur-md sm:p-8">
           {/* Mobile logo */}
           <div className="flex items-center justify-center gap-2 lg:hidden">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
-              <BookOpen className="h-4 w-4 text-primary-foreground" />
-            </div>
+            <Image
+              src="/logo-sistem-guru.png"
+              alt="Logo Sistem Guru"
+              width={40}
+              height={40}
+              className="h-10 w-10 object-contain"
+            />
             <span className="text-lg font-bold">Sistem Guru</span>
           </div>
 
