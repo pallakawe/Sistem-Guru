@@ -99,8 +99,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }
 
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border/80" {...props}>
+      <SidebarHeader className="border-b border-sidebar-border/70 p-3">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<Link href="/dashboard" />}>
@@ -109,23 +109,28 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   alt="Logo Sistem Guru"
                   width={32}
                   height={32}
-                  className="size-8 object-contain"
+                  className="size-9 object-contain drop-shadow-sm transition-transform duration-150 group-hover/menu-button:scale-105"
                 />
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Sistem Guru</span>
-                  <span className="truncate text-xs">Administrasi Terpadu</span>
+                  <span className="truncate font-heading font-bold tracking-tight">Sistem Guru</span>
+                  <span className="truncate text-[11px] text-muted-foreground">Administrasi Terpadu</span>
                 </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
-        <SidebarMenu className="px-2 py-2 gap-1">
+      <SidebarContent className="py-2">
+        <SidebarMenu className="gap-1 px-2 py-1">
           {data.navMain.map((item) => {
             const isActive = pathname === item.url || pathname.startsWith(`${item.url}/`)
             return (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton isActive={isActive} tooltip={item.title} render={<Link href={item.url} />}>
+                <SidebarMenuButton
+                  isActive={isActive}
+                  tooltip={item.title}
+                  className="h-10 rounded-xl px-3 font-accent font-medium transition-all duration-150 hover:translate-x-0.5 data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:shadow-sm"
+                  render={<Link href={item.url} onClick={() => setOpenMobile(false)} />}
+                >
                     <item.icon />
                     <span>{item.title}</span>
                 </SidebarMenuButton>
@@ -134,10 +139,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           })}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="border-t border-sidebar-border/70 p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleLogout} tooltip="Keluar">
+            <SidebarMenuButton className="h-10 rounded-xl transition-colors hover:bg-destructive/10" onClick={handleLogout} tooltip="Keluar">
               <LogOut className="text-destructive" />
               <span className="text-destructive">Keluar</span>
             </SidebarMenuButton>
