@@ -36,12 +36,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
+    <div
+      className="min-h-screen grid lg:grid-cols-2 bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: "url('/login-background.jpg')" }}
+    >
+      <div className="fixed inset-0 bg-slate-950/35 backdrop-blur-[1px]" />
+
       {/* Left Panel */}
-      <div className="hidden lg:flex flex-col justify-between p-10 text-white relative overflow-hidden bg-zinc-900">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/30 via-purple-600/20 to-pink-600/20" />
-        <div className="absolute top-20 right-20 w-72 h-72 rounded-full bg-indigo-500/20 blur-3xl" />
-        <div className="absolute bottom-20 left-10 w-64 h-64 rounded-full bg-purple-500/20 blur-3xl" />
+      <div className="hidden lg:flex flex-col justify-between p-10 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/45 to-transparent" />
 
         <div className="relative z-20 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
@@ -80,8 +83,9 @@ export default function LoginPage() {
       </div>
 
       {/* Right Panel — Login only */}
-      <div className="flex items-center justify-center p-8">
-        <div className="mx-auto w-full max-w-sm space-y-6">
+      <div className="relative z-10 flex items-center justify-center p-6 sm:p-8">
+        <div className="absolute inset-0 bg-white/10 lg:bg-white/5 backdrop-blur-[2px]" />
+        <div className="relative mx-auto w-full max-w-sm space-y-6 rounded-2xl border border-white/40 bg-white/90 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
           {/* Mobile logo */}
           <div className="flex items-center justify-center gap-2 lg:hidden">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
