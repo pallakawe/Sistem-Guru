@@ -17,8 +17,8 @@ export default async function SettingsPage() {
     <SettingsClient
       profile={data.profile}
       school={data.school}
-      academicYears={data.academicYears}
-      userEmail={data.userEmail}
+      academicYears={data.academicYears || []}
+      userEmail={data.userEmail || ""}
     />
   )
 }
