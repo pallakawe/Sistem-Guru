@@ -10,9 +10,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, GraduationCap, ChevronLeft, Loader2, Save } from "lucide-react"
+import { Plus, GraduationCap, ChevronLeft, Loader2, Save, Pencil, Trash2 } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { createAssessment, getAssessmentScores, saveScores } from "./actions"
+import { createAssessment, getAssessmentScores, saveScores, updateAssessment, deleteAssessment } from "./actions"
 import { useToast } from "@/hooks/use-toast"
 
 const ASSESSMENT_TYPES = ["Tugas", "Kuis", "Asesmen Formatif", "Asesmen Sumatif", "Proyek", "Praktik", "UTS/STS", "UAS/SAS"]
@@ -33,6 +33,8 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
   const [students, setStudents] = useState<any[]>([])
   const [localScores, setLocalScores] = useState<Record<string, string>>({})
   const [loadingScores, setLoadingScores] = useState(false)
+  const [editingAssessment, setEditingAssessment] = useState<any | null>(null)
+  const [assessmentToDelete, setAssessmentToDelete] = useState<any | null>(null)
   const { toast } = useToast()
 
   async function handleViewScores(assessment: any) {
@@ -77,6 +79,34 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
       } else {
         toast({ title: "Berhasil!", description: "Nilai siswa berhasil disimpan." })
       }
+    })
+  }
+
+  function handleEditAssessment(formData: FormData) {
+    if (!editingAssessment) return
+    startTransition(async () => {
+      const result = await updateAssessment(editingAssessment.id, formData)
+      if (result.error) {
+        toast({ title: "Gagal", description: result.error, variant: "destructive" })
+        return
+      }
+      setEditingAssessment(null)
+      toast({ title: "Berhasil", description: "Komponen penilaian diperbarui." })
+      window.location.reload()
+    })
+  }
+
+  function handleDeleteAssessment() {
+    if (!assessmentToDelete) return
+    startTransition(async () => {
+      const result = await deleteAssessment(assessmentToDelete.id)
+      if (result.error) {
+        toast({ title: "Gagal", description: result.error, variant: "destructive" })
+        return
+      }
+      setAssessments(prev => prev.filter(item => item.id !== assessmentToDelete.id))
+      setAssessmentToDelete(null)
+      toast({ title: "Dihapus", description: "Komponen penilaian dan nilai terkait berhasil dihapus." })
     })
   }
 
@@ -182,9 +212,11 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
                         </p>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => handleViewScores(a)}>
-                      Input Nilai
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button variant="outline" size="sm" onClick={() => handleViewScores(a)}>Input Nilai</Button>
+                      <Button variant="ghost" size="icon-sm" title="Edit" onClick={() => setEditingAssessment(a)}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon-sm" className="text-destructive hover:text-destructive" title="Hapus" onClick={() => setAssessmentToDelete(a)}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -192,6 +224,53 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
           )}
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!editingAssessment} onOpenChange={(value) => !value && setEditingAssessment(null)}>
+        <DialogContent className="sm:max-w-[480px]">
+          <form key={editingAssessment?.id} action={handleEditAssessment}>
+            <DialogHeader><DialogTitle>Edit Komponen Penilaian</DialogTitle><DialogDescription>Perbarui data komponen penilaian.</DialogDescription></DialogHeader>
+            {editingAssessment && (
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2"><Label>Judul</Label><Input name="title" defaultValue={editingAssessment.title} required /></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label>Jenis</Label>
+                    <Select name="type" defaultValue={editingAssessment.type} items={ASSESSMENT_TYPES.map(x => ({ value: x, label: x }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{ASSESSMENT_TYPES.map(x => <SelectItem key={x} value={x}>{x}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2"><Label>Bobot (%)</Label><Input name="weight" type="number" min={0} max={100} defaultValue={editingAssessment.weight || 0} /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label>Kelas</Label>
+                    <Select name="classId" defaultValue={editingAssessment.classes?.id} items={classes.map(x => ({ value: x.id, label: x.name }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{classes.map(x => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Mata Pelajaran</Label>
+                    <Select name="subjectId" defaultValue={editingAssessment.subjects?.id} items={subjects.map(x => ({ value: x.id, label: x.name }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{subjects.map(x => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setEditingAssessment(null)}>Batal</Button><Button type="submit" disabled={isPending}>Simpan</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!assessmentToDelete} onOpenChange={(value) => !value && setAssessmentToDelete(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Hapus Komponen Penilaian?</DialogTitle><DialogDescription>Semua nilai siswa pada komponen ini juga akan dihapus.</DialogDescription></DialogHeader>
+          <DialogFooter><Button variant="outline" onClick={() => setAssessmentToDelete(null)}>Batal</Button><Button variant="destructive" onClick={handleDeleteAssessment} disabled={isPending}>Hapus</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Assessment Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
