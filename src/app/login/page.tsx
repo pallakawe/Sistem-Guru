@@ -47,7 +47,7 @@ export default function LoginPage() {
         sizes="100vw"
         className="object-cover object-center"
       />
-      <div className="absolute inset-0 bg-black/10" />
+      <div className="absolute inset-0 bg-black/5" />
 
       <div className="relative z-10 min-h-screen grid lg:grid-cols-2">
 
@@ -99,7 +99,7 @@ export default function LoginPage() {
       {/* Right Panel — Login only */}
       <div className="relative z-10 flex items-center justify-center p-6 sm:p-8">
         <div className="absolute inset-0 bg-transparent" />
-        <div className="relative mx-auto w-full max-w-sm space-y-6 rounded-2xl border border-white/50 bg-white/88 p-6 shadow-2xl backdrop-blur-md sm:p-8">
+        <div className="relative mx-auto w-full max-w-sm space-y-6 rounded-2xl border border-white/45 bg-white/72 p-6 shadow-2xl backdrop-blur-sm sm:bg-white/78 sm:p-8">
           {/* Mobile logo */}
           <div className="flex items-center justify-center gap-2 lg:hidden">
             <Image
