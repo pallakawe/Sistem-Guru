@@ -14,7 +14,7 @@ export default function DashboardLayout({
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset className="bg-background">
-        <header className="surface-glass sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border/70 px-3 sm:h-16 sm:px-5">
+        <header className="surface-glass sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border/70 px-2.5 sm:h-16 sm:gap-3 sm:px-5">
           <SidebarTrigger className="-ml-1" />
           <div className="h-5 w-px bg-border/80" />
           <div className="min-w-0 flex-1">
@@ -22,7 +22,7 @@ export default function DashboardLayout({
             <p className="hidden truncate text-xs text-muted-foreground sm:block">Administrasi pembelajaran dalam satu tempat</p>
           </div>
         </header>
-        <main className="flex-1 px-3 py-4 sm:px-5 sm:py-5 lg:px-8 lg:py-7">
+        <main className="flex-1 px-2.5 py-3 sm:px-5 sm:py-5 lg:px-8 lg:py-7">
           <div className="mx-auto w-full max-w-[1500px]">
             {children}
           </div>

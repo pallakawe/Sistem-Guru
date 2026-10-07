@@ -151,15 +151,15 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4 sm:gap-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           {selectedClass ? (
             <Button variant="ghost" size="sm" className="mb-2 -ml-2" onClick={() => setSelectedClass(null)}>
               <ChevronLeft className="h-4 w-4 mr-1" /> Kembali ke Daftar Kelas
             </Button>
           ) : null}
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
             {selectedClass ? `${selectedClass.name} — Daftar Siswa` : 'Kelas & Siswa'}
           </h1>
           <p className="text-muted-foreground">
@@ -171,7 +171,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
             <Plus className="mr-2 h-4 w-4" /> Tambah Kelas
           </Button>
         ) : (
-          <div className="flex flex-wrap justify-end gap-2">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
             {students.length > 0 && (
               <>
                 <Button variant="outline" onClick={() => exportRowsToExcel(studentExport)}>
@@ -182,7 +182,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                 </Button>
               </>
             )}
-            <Button onClick={() => setOpenAddStudent(true)}>
+            <Button className="col-span-2 sm:col-span-1" onClick={() => setOpenAddStudent(true)}>
               <Plus className="mr-2 h-4 w-4" /> Tambah Siswa
             </Button>
           </div>
@@ -191,7 +191,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
 
       {!selectedClass ? (
         // Class list view
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {classes.length === 0 ? (
             <div className="col-span-3 text-center py-16 border-2 border-dashed rounded-lg">
               <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -226,7 +226,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
         </div>
       ) : (
         // Student list view
-        <div className="rounded-md border">
+        <div className="min-w-0 overflow-hidden rounded-xl border">
           {loadingStudents ? (
             <div className="flex justify-center items-center py-16"><Loader2 className="h-8 w-8 animate-spin" /></div>
           ) : students.length === 0 ? (
@@ -371,7 +371,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                 <Label htmlFor="fullName">Nama Lengkap</Label>
                 <Input id="fullName" name="fullName" placeholder="Nama lengkap siswa" required />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="nis">NIS</Label>
                   <Input id="nis" name="nis" placeholder="NIS" />
@@ -381,7 +381,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                   <Input id="nisn" name="nisn" placeholder="NISN" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="gender">Jenis Kelamin</Label>
                   <Select name="gender">
@@ -436,7 +436,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                   <Label htmlFor="editFullName">Nama Lengkap</Label>
                   <Input id="editFullName" name="fullName" defaultValue={editingStudent.full_name} required />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
                     <Label htmlFor="editNis">NIS</Label>
                     <Input id="editNis" name="nis" defaultValue={editingStudent.nis || ''} />
@@ -446,7 +446,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                     <Input id="editNisn" name="nisn" defaultValue={editingStudent.nisn || ''} />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
                     <Label htmlFor="editGender">Jenis Kelamin</Label>
                     <Select name="gender" defaultValue={editingStudent.gender || ''}>

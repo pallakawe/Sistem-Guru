@@ -90,19 +90,19 @@ export default function LearningDevicesClient({ initialDevices }: { initialDevic
     <div className="grid gap-3">
       {items.map(d => (
         <Card key={d.id} className="hover:shadow-sm transition-shadow">
-          <CardContent className="flex items-center gap-4 p-4">
+          <CardContent className="flex flex-wrap items-start gap-3 p-3 sm:flex-nowrap sm:items-center sm:gap-4 sm:p-4">
             <div className={`flex-shrink-0 ${getFileIconColor(d.file_name || '')}`}>
               <FileText className="h-10 w-10" />
             </div>
             <div className="flex-1 min-w-0">
               <h4 className="font-medium truncate">{d.title}</h4>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2">
                 <Badge variant="secondary" className="text-xs">{d.category}</Badge>
                 {d.file_name && <span className="text-xs text-muted-foreground">{d.file_name}</span>}
               </div>
               <p className="text-xs text-muted-foreground mt-1">{format(parseISO(d.created_at), "d MMM yyyy", { locale: idLocale })}</p>
             </div>
-            <div className="flex gap-2 flex-shrink-0">
+            <div className="ml-auto flex shrink-0 gap-1 sm:gap-2">
               {d.file_url && (
                 <Button
                   variant="outline"
@@ -124,10 +124,10 @@ export default function LearningDevicesClient({ initialDevices }: { initialDevic
   )
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4 sm:gap-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Perangkat Pembelajaran</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Perangkat Pembelajaran</h1>
           <p className="text-muted-foreground">Kelola semua dokumen perangkat pembelajaran Anda.</p>
         </div>
         <Button onClick={() => setOpen(true)}><Upload className="mr-2 h-4 w-4" /> Upload Dokumen</Button>
@@ -139,7 +139,7 @@ export default function LearningDevicesClient({ initialDevices }: { initialDevic
       </div>
 
       <Tabs defaultValue="all">
-        <TabsList className="flex-wrap h-auto gap-1">
+        <TabsList className="w-full justify-start gap-1 overflow-x-auto whitespace-nowrap">
           <TabsTrigger value="all">Semua ({devices.length})</TabsTrigger>
           {DEVICE_CATEGORIES.map(c => {
             const count = devices.filter(d => d.category === c).length

@@ -94,10 +94,10 @@ export default function MaterialsClient({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 sm:gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Bahan Ajar</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Bahan Ajar</h1>
           <p className="text-muted-foreground">Kelola file, link, dan materi pembelajaran dari Supabase.</p>
         </div>
         <Button onClick={() => setOpen(true)}>
@@ -148,7 +148,7 @@ export default function MaterialsClient({
                 <p className="text-xs text-muted-foreground">
                   {format(parseISO(m.created_at), "d MMM yyyy", { locale: idLocale })}
                 </p>
-                <div className="mt-auto flex gap-2 pt-2">
+                <div className="mt-auto grid grid-cols-[1fr_auto_auto] gap-2 pt-2">
                   {m.file_url && (
                     <Button
                       variant="outline"

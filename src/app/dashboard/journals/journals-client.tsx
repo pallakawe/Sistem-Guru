@@ -103,13 +103,13 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4 sm:gap-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Jurnal Mengajar</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Jurnal Mengajar</h1>
           <p className="text-muted-foreground">Dokumentasi kegiatan pembelajaran setiap pertemuan.</p>
         </div>
-        <div className="flex flex-wrap justify-end gap-2">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
           {initialJournals.length > 0 && (
             <>
               <Button variant="outline" onClick={() => exportRowsToExcel(journalExport)}>
@@ -132,7 +132,7 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
               <div className="grid gap-4 py-4">
                 {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
                     <Label htmlFor="classId">Kelas</Label>
                     <Select name="classId" required items={classes.map(c => ({ value: c.id, label: c.name }))}>
@@ -152,7 +152,7 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
                     <Label htmlFor="meetingNumber">Pertemuan Ke-</Label>
                     <Input id="meetingNumber" name="meetingNumber" type="number" placeholder="5" min={1} required />
@@ -204,14 +204,14 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
         {initialJournals.length === 0 ? (
           <p className="text-muted-foreground">Belum ada jurnal mengajar.</p>
         ) : (
           initialJournals.map(j => (
             <Card key={j.id} className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-3">
                   <div>
                     <CardTitle className="text-base">{j.topic}</CardTitle>
                     <div className="flex items-center gap-2 mt-1">
@@ -245,7 +245,7 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
             <DialogHeader><DialogTitle>Edit Jurnal</DialogTitle><DialogDescription>Perbarui jurnal dan data pertemuan.</DialogDescription></DialogHeader>
             {editingJournal && (
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="grid gap-2"><Label>Kelas</Label>
                     <Select name="classId" defaultValue={editingJournal.meetings?.classes?.id} items={classes.map(x => ({ value: x.id, label: x.name }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{classes.map(x => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}</SelectContent>
@@ -257,7 +257,7 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="grid gap-2"><Label>Pertemuan Ke-</Label><Input name="meetingNumber" type="number" min={1} defaultValue={editingJournal.meetings?.meeting_number} required /></div>
                   <div className="grid gap-2"><Label>Tanggal</Label><Input name="date" type="date" defaultValue={editingJournal.meetings?.date} required /></div>
                 </div>

@@ -126,15 +126,15 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
 
   if (selectedAssessment) {
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4 sm:gap-6">
         <div>
           <Button variant="ghost" size="sm" className="-ml-2 mb-2" onClick={() => setSelectedAssessment(null)}>
             <ChevronLeft className="h-4 w-4 mr-1" /> Kembali ke Daftar Komponen
           </Button>
-          <h1 className="text-3xl font-bold tracking-tight">Input Nilai: {selectedAssessment.title}</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Input Nilai: {selectedAssessment.title}</h1>
           <p className="text-muted-foreground">{selectedAssessment.classes?.name} · {selectedAssessment.subjects?.name} · Bobot {selectedAssessment.weight}%</p>
           {students.length > 0 && scoreExport && (
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
               <Button variant="outline" onClick={() => exportRowsToExcel(scoreExport)}>
                 <FileSpreadsheet className="mr-2 h-4 w-4" /> Export Excel
               </Button>
@@ -197,10 +197,10 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4 sm:gap-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Penilaian</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Penilaian</h1>
           <p className="text-muted-foreground">Kelola komponen penilaian dan input nilai siswa.</p>
         </div>
         <Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" /> Buat Komponen Nilai</Button>
@@ -223,8 +223,8 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
             <div className="grid gap-3">
               {assessments.map(a => (
                 <Card key={a.id} className="hover:shadow-sm transition-shadow">
-                  <CardContent className="flex items-center justify-between p-4">
-                    <div className="flex items-center gap-4">
+                  <CardContent className="flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
                       <div className={`text-sm px-2 py-1 rounded-md font-medium ${TYPE_BADGE[a.type] || "bg-gray-100 text-gray-700"}`}>
                         {a.type}
                       </div>
@@ -236,7 +236,7 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
                         </p>
                       </div>
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex w-full flex-wrap gap-1 sm:w-auto sm:justify-end">
                       <Button variant="outline" size="sm" onClick={() => handleViewScores(a)}>Input Nilai</Button>
                       <Button variant="ghost" size="icon-sm" title="Edit" onClick={() => setEditingAssessment(a)}><Pencil className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon-sm" className="text-destructive hover:text-destructive" title="Hapus" onClick={() => setAssessmentToDelete(a)}><Trash2 className="h-4 w-4" /></Button>
@@ -256,7 +256,7 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
             {editingAssessment && (
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2"><Label>Judul</Label><Input name="title" defaultValue={editingAssessment.title} required /></div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
                     <Label>Jenis</Label>
                     <Select name="type" defaultValue={editingAssessment.type} items={ASSESSMENT_TYPES.map(x => ({ value: x, label: x }))}>
@@ -266,7 +266,7 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
                   </div>
                   <div className="grid gap-2"><Label>Bobot (%)</Label><Input name="weight" type="number" min={0} max={100} defaultValue={editingAssessment.weight || 0} /></div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
                     <Label>Kelas</Label>
                     <Select name="classId" defaultValue={editingAssessment.classes?.id} items={classes.map(x => ({ value: x.id, label: x.name }))}>
@@ -309,7 +309,7 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
                 <Label htmlFor="title">Judul</Label>
                 <Input id="title" name="title" placeholder="Contoh: Tugas 1 - Flowchart" required />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="type">Jenis Penilaian</Label>
                   <Select name="type" required>
@@ -322,7 +322,7 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
                   <Input id="weight" name="weight" type="number" placeholder="20" min={1} max={100} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="classId">Kelas</Label>
                   <Select name="classId" required items={classes.map(c => ({ value: c.id, label: c.name }))}>

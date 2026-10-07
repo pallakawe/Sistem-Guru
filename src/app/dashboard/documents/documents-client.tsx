@@ -92,10 +92,10 @@ export default function DocumentsClient({ initialDocs }: { initialDocs: any[] })
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4 sm:gap-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dokumen</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Dokumen</h1>
           <p className="text-muted-foreground">Pusat penyimpanan dokumen administrasi Anda.</p>
         </div>
         <Button onClick={() => setOpen(true)}>
@@ -117,7 +117,7 @@ export default function DocumentsClient({ initialDocs }: { initialDocs: any[] })
         </Select>
       </div>
 
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 md:grid-cols-4">
         {DOC_CATEGORIES.slice(0, 4).map(cat => {
           const count = docs.filter(d => d.category === cat).length
           return (
@@ -145,19 +145,19 @@ export default function DocumentsClient({ initialDocs }: { initialDocs: any[] })
         <div className="grid gap-3">
           {filtered.map(d => (
             <Card key={d.id} className="hover:shadow-sm transition-shadow">
-              <CardContent className="flex items-center gap-4 p-4">
+              <CardContent className="flex flex-wrap items-start gap-3 p-3 sm:flex-nowrap sm:items-center sm:gap-4 sm:p-4">
                 <div className={`flex-shrink-0 ${getColor(d.file_name || '')}`}>
                   <FileText className="h-10 w-10" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="font-medium truncate">{d.title}</h4>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${CATEGORY_COLORS[d.category] || ''}`}>{d.category}</span>
                     {d.file_name && <span className="text-xs text-muted-foreground">{d.file_name}</span>}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">{format(parseISO(d.created_at), "d MMMM yyyy", { locale: idLocale })}</p>
                 </div>
-                <div className="flex gap-2 flex-shrink-0">
+                <div className="ml-auto flex shrink-0 gap-1 sm:gap-2">
                   {d.file_url && (
                     <Button
                       variant="outline"

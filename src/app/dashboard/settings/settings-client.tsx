@@ -53,9 +53,9 @@ export default function SettingsClient({ profile, school, academicYears, userEma
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl">
+    <div className="flex max-w-2xl flex-col gap-4 sm:gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Pengaturan</h1>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Pengaturan</h1>
         <p className="text-muted-foreground">Kelola profil dan preferensi akun Anda.</p>
       </div>
 
@@ -66,13 +66,13 @@ export default function SettingsClient({ profile, school, academicYears, userEma
           <CardDescription>Informasi dasar akun Anda.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center gap-4">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
             <Avatar className="h-20 w-20">
               <AvatarFallback className="text-xl bg-primary/10 text-primary font-bold">{initials}</AvatarFallback>
             </Avatar>
-            <div>
-              <h3 className="font-semibold">{profile.full_name || "—"}</h3>
-              <p className="text-sm text-muted-foreground">{userEmail}</p>
+            <div className="min-w-0">
+              <h3 className="truncate font-semibold">{profile.full_name || "—"}</h3>
+              <p className="truncate text-sm text-muted-foreground">{userEmail}</p>
             </div>
           </div>
 
@@ -180,7 +180,7 @@ export default function SettingsClient({ profile, school, academicYears, userEma
           <Separator />
           <p className="text-sm font-medium">Buat Tahun Ajaran Baru</p>
           <form action={handleSaveAcademicYear}>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
                 <Label>Tahun Ajaran</Label>
                 <Select name="yearName" defaultValue="2026/2027">

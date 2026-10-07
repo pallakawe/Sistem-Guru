@@ -122,10 +122,10 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4 sm:gap-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Jadwal Mengajar</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Jadwal Mengajar</h1>
           <p className="text-muted-foreground">Kelola jadwal mengajar Anda per minggu.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -150,7 +150,7 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
                     <Label htmlFor="startTime">Jam Mulai</Label>
                     <Input id="startTime" name="startTime" type="time" defaultValue="08:00" required />
@@ -223,7 +223,7 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
                     <SelectContent>{DAYS.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="grid gap-2"><Label>Jam Mulai</Label><Input name="startTime" type="time" defaultValue={formatTime(editingSchedule.start_time)} required /></div>
                   <div className="grid gap-2"><Label>Jam Selesai</Label><Input name="endTime" type="time" defaultValue={formatTime(editingSchedule.end_time)} required /></div>
                 </div>
@@ -274,15 +274,15 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
           <CardContent>
             <div className="flex flex-col gap-3">
               {todaySchedules.map(s => (
-                <div key={s.id} className="flex items-center justify-between p-3 bg-white dark:bg-card rounded-lg border">
-                  <div className="flex items-center gap-4">
+                <div key={s.id} className="flex flex-col items-stretch gap-3 rounded-xl border bg-white p-3 dark:bg-card sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                     <div className="text-sm font-mono font-bold text-primary">{formatTime(s.start_time)}<br /><span className="text-muted-foreground font-normal">{formatTime(s.end_time)}</span></div>
                     <div>
                       <p className="font-semibold">{s.classes?.name}</p>
                       <p className="text-sm text-muted-foreground">{s.subjects?.name}</p>
                     </div>
                   </div>
-                  <Button size="sm">Mulai Pertemuan</Button>
+                  <Button size="sm" className="w-full sm:w-auto">Mulai Pertemuan</Button>
                 </div>
               ))}
             </div>

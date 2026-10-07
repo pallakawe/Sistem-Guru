@@ -100,15 +100,15 @@ export default function AttendanceClient({ meetings }: { meetings: any[] }) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 sm:gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Absensi Cepat</h1>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Absensi Cepat</h1>
         <p className="text-muted-foreground">Catat kehadiran siswa berdasarkan pertemuan yang sudah dibuat di Jurnal.</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-4">
+      <div className="grid gap-4 lg:grid-cols-4 lg:gap-6">
         {/* Selection Area */}
-        <Card className="md:col-span-1 h-fit">
+        <Card className="h-fit lg:col-span-1">
           <CardHeader>
             <CardTitle>Pilih Pertemuan</CardTitle>
             <CardDescription>Tentukan pertemuan dari jurnal Anda</CardDescription>
@@ -152,7 +152,7 @@ export default function AttendanceClient({ meetings }: { meetings: any[] }) {
         </Card>
 
         {/* Student List */}
-        <Card className="md:col-span-3">
+        <Card className="min-w-0 lg:col-span-3">
           <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <CardTitle>Daftar Siswa</CardTitle>
@@ -165,7 +165,7 @@ export default function AttendanceClient({ meetings }: { meetings: any[] }) {
               </CardDescription>
             </div>
             {students.length > 0 && (
-              <div className="flex flex-wrap justify-end gap-2">
+              <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
                 <Button variant="outline" onClick={() => exportRowsToExcel(attendanceExport)}>
                   <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel
                 </Button>
@@ -190,12 +190,12 @@ export default function AttendanceClient({ meetings }: { meetings: any[] }) {
             ) : (
               <div className="space-y-3">
                 {students.map((student, index) => (
-                  <div key={student.id} className="flex flex-col xl:flex-row xl:items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors gap-3">
+                  <div key={student.id} className="flex flex-col justify-between gap-3 rounded-xl border p-3 transition-colors hover:bg-muted/50 sm:flex-row sm:items-center">
                     <div className="flex items-center gap-3">
                       <span className="text-muted-foreground w-6 text-sm">{index + 1}</span>
                       <span className="font-medium">{student.full_name}</span>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                       <Button 
                         size="sm" 
                         variant={student.status === "H" ? "default" : "outline"}
