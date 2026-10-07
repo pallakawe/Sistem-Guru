@@ -75,3 +75,70 @@ export async function createSchedule(formData: FormData) {
   revalidatePath('/dashboard/schedules')
   return { success: true }
 }
+
+
+export async function updateSchedule(scheduleId: string, formData: FormData) {
+  const { supabase, user, activeYearId } = await getContext()
+  if (!user) return { error: 'Unauthorized' }
+  if (!activeYearId) return { error: 'Tahun ajaran aktif belum diatur.' }
+
+  const dayOfWeek = Number(formData.get('dayOfWeek'))
+  const startTime = String(formData.get('startTime') || '')
+  const endTime = String(formData.get('endTime') || '')
+  const classId = String(formData.get('classId') || '')
+  const subjectId = String(formData.get('subjectId') || '')
+  const room = String(formData.get('room') || '').trim()
+
+  if (!Number.isInteger(dayOfWeek) || dayOfWeek < 1 || dayOfWeek > 7 || !startTime || !endTime || !classId || !subjectId) {
+    return { error: 'Mohon lengkapi semua field yang wajib.' }
+  }
+  if (endTime <= startTime) return { error: 'Jam selesai harus lebih akhir daripada jam mulai.' }
+
+  const [{ data: ownedClass }, { data: ownedSubject }] = await Promise.all([
+    supabase.from('classes').select('id').eq('id', classId).eq('teacher_id', user.id)
+      .eq('academic_year_id', activeYearId).maybeSingle(),
+    supabase.from('subjects').select('id').eq('id', subjectId).eq('teacher_id', user.id).maybeSingle(),
+  ])
+  if (!ownedClass || !ownedSubject) return { error: 'Kelas atau mata pelajaran tidak valid.' }
+
+  const { data, error } = await supabase.from('schedules')
+    .update({
+      day_of_week: dayOfWeek,
+      start_time: startTime,
+      end_time: endTime,
+      class_id: classId,
+      subject_id: subjectId,
+      room: room || null,
+    })
+    .eq('id', scheduleId)
+    .eq('teacher_id', user.id)
+    .eq('academic_year_id', activeYearId)
+    .select('id')
+    .maybeSingle()
+
+  if (error) return { error: error.message }
+  if (!data) return { error: 'Jadwal tidak ditemukan.' }
+
+  revalidatePath('/dashboard/schedules')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
+export async function deleteSchedule(scheduleId: string) {
+  const { supabase, user } = await getContext()
+  if (!user) return { error: 'Unauthorized' }
+
+  const { data, error } = await supabase.from('schedules')
+    .delete()
+    .eq('id', scheduleId)
+    .eq('teacher_id', user.id)
+    .select('id')
+    .maybeSingle()
+
+  if (error) return { error: error.message }
+  if (!data) return { error: 'Jadwal tidak ditemukan.' }
+
+  revalidatePath('/dashboard/schedules')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
