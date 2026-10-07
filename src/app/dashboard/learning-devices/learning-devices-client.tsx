@@ -89,8 +89,12 @@ export default function LearningDevicesClient({ initialDevices }: { initialDevic
             </div>
             <div className="flex gap-2 flex-shrink-0">
               {d.file_url && (
-                <Button variant="outline" size="sm" asChild>
-                  <a href={d.file_url} target="_blank" rel="noopener noreferrer"><Download className="h-4 w-4" /></a>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  render={<a href={d.file_url} target="_blank" rel="noopener noreferrer" />}
+                >
+                  <Download className="h-4 w-4" />
                 </Button>
               )}
               <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDelete(d.id)}>
