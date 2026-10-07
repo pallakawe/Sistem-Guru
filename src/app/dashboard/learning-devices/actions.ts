@@ -86,3 +86,27 @@ export async function deleteLearningDevice(id: string) {
   revalidatePath('/dashboard/learning-devices')
   return { success: true }
 }
+
+
+export async function updateLearningDevice(id: string, formData: FormData) {
+  const supabase = await createClient()
+  const { data: userData } = await supabase.auth.getUser()
+  if (!userData?.user) return { error: 'Unauthorized' }
+
+  const title = String(formData.get('title') || '').trim()
+  const category = String(formData.get('category') || '').trim()
+  if (!title || !category) return { error: 'Judul dan kategori wajib diisi.' }
+
+  const { data, error } = await supabase.from('learning_devices')
+    .update({ title, category })
+    .eq('id', id)
+    .eq('teacher_id', userData.user.id)
+    .select('id')
+    .maybeSingle()
+
+  if (error) return { error: error.message }
+  if (!data) return { error: 'Perangkat pembelajaran tidak ditemukan.' }
+
+  revalidatePath('/dashboard/learning-devices')
+  return { success: true }
+}
