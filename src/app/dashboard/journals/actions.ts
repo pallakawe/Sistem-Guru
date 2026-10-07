@@ -5,101 +5,110 @@ import { revalidatePath } from 'next/cache'
 
 export async function getJournals() {
   const supabase = await createClient()
-  
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { error: 'Unauthorized' }
 
-  const { data: profile } = await supabase.from('profiles').select('active_academic_year_id').eq('id', userData.user.id).single()
+  const { data: profile } = await supabase.from('profiles')
+    .select('active_academic_year_id').eq('id', userData.user.id).single()
   if (!profile?.active_academic_year_id) return { data: [] }
 
   const { data, error } = await supabase
     .from('teaching_journals')
     .select(`
-      id,
-      topic,
-      learning_objectives,
-      activities,
-      method,
-      notes,
-      obstacles,
-      follow_up,
-      meetings (
-        meeting_number,
-        date,
+      id, topic, learning_objectives, activities, method, notes, obstacles, follow_up,
+      meetings!inner (
+        meeting_number, date, academic_year_id,
         classes (id, name),
         subjects (id, name)
       )
     `)
     .eq('teacher_id', userData.user.id)
+    .eq('meetings.academic_year_id', profile.active_academic_year_id)
     .order('created_at', { ascending: false })
 
   if (error) return { error: error.message }
-  return { data }
+  return { data: data || [] }
 }
 
 export async function getFormData() {
   const supabase = await createClient()
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { classes: [], subjects: [] }
-  const { data: classes } = await supabase.from('classes').select('id, name').eq('teacher_id', userData.user.id)
-  const { data: subjects } = await supabase.from('subjects').select('id, name').eq('teacher_id', userData.user.id)
-  return { classes: classes || [], subjects: subjects || [] }
+
+  const { data: profile } = await supabase.from('profiles')
+    .select('active_academic_year_id').eq('id', userData.user.id).single()
+
+  const classesQuery = supabase.from('classes').select('id, name')
+    .eq('teacher_id', userData.user.id).order('name')
+  if (profile?.active_academic_year_id) classesQuery.eq('academic_year_id', profile.active_academic_year_id)
+
+  const [classesRes, subjectsRes] = await Promise.all([
+    classesQuery,
+    supabase.from('subjects').select('id, name').eq('teacher_id', userData.user.id).order('name'),
+  ])
+
+  return { classes: classesRes.data || [], subjects: subjectsRes.data || [] }
 }
 
 export async function createJournal(formData: FormData) {
   const supabase = await createClient()
-  
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { error: 'Unauthorized' }
 
-  const { data: profile } = await supabase.from('profiles').select('active_academic_year_id').eq('id', userData.user.id).single()
+  const { data: profile } = await supabase.from('profiles')
+    .select('active_academic_year_id').eq('id', userData.user.id).single()
   if (!profile?.active_academic_year_id) return { error: 'Tahun ajaran aktif belum diatur.' }
 
-  const classId = formData.get('classId') as string
-  const subjectId = formData.get('subjectId') as string
-  const meetingNumber = parseInt(formData.get('meetingNumber') as string)
-  const date = formData.get('date') as string
-  const topic = formData.get('topic') as string
-  const objectives = formData.get('objectives') as string
-  const activities = formData.get('activities') as string
-  const method = formData.get('method') as string
-  const notes = formData.get('notes') as string
-  const obstacles = formData.get('obstacles') as string
-  const followUp = formData.get('followUp') as string
+  const classId = String(formData.get('classId') || '')
+  const subjectId = String(formData.get('subjectId') || '')
+  const meetingNumber = Number(formData.get('meetingNumber'))
+  const date = String(formData.get('date') || '')
+  const topic = String(formData.get('topic') || '').trim()
+  const objectives = String(formData.get('objectives') || '').trim()
+  const activities = String(formData.get('activities') || '').trim()
+  const method = String(formData.get('method') || '').trim()
+  const notes = String(formData.get('notes') || '').trim()
+  const obstacles = String(formData.get('obstacles') || '').trim()
+  const followUp = String(formData.get('followUp') || '').trim()
 
-  if (!classId || !subjectId || !meetingNumber || !date || !topic) {
-    return { error: 'Mohon lengkapi field wajib.' }
+  if (!classId || !subjectId || !Number.isInteger(meetingNumber) || meetingNumber < 1 || !date || !topic) {
+    return { error: 'Mohon lengkapi field wajib dengan benar.' }
   }
 
-  const { data: meeting, error: meetingError } = await supabase.from('meetings').insert({
-    meeting_number: meetingNumber,
-    date: date,
-    class_id: classId,
-    subject_id: subjectId,
-    academic_year_id: profile.active_academic_year_id,
-    teacher_id: userData.user.id
-  }).select('id').single()
+  const [{ data: ownedClass }, { data: ownedSubject }] = await Promise.all([
+    supabase.from('classes').select('id').eq('id', classId).eq('teacher_id', userData.user.id)
+      .eq('academic_year_id', profile.active_academic_year_id).maybeSingle(),
+    supabase.from('subjects').select('id').eq('id', subjectId).eq('teacher_id', userData.user.id).maybeSingle(),
+  ])
+  if (!ownedClass || !ownedSubject) return { error: 'Kelas atau mata pelajaran tidak valid.' }
 
+  const { data: meeting, error: meetingError } = await supabase.from('meetings').insert({
+    meeting_number: meetingNumber, date, class_id: classId, subject_id: subjectId,
+    academic_year_id: profile.active_academic_year_id, teacher_id: userData.user.id
+  }).select('id').single()
   if (meetingError) return { error: meetingError.message }
 
   const { error: journalError } = await supabase.from('teaching_journals').insert({
-    meeting_id: meeting.id,
-    topic,
-    learning_objectives: objectives,
-    activities,
-    method,
-    notes,
-    obstacles,
-    follow_up: followUp,
+    meeting_id: meeting.id, topic,
+    learning_objectives: objectives || null, activities: activities || null, method: method || null,
+    notes: notes || null, obstacles: obstacles || null, follow_up: followUp || null,
     teacher_id: userData.user.id
   })
-  if (journalError) return { error: journalError.message }
 
-  await supabase.from('attendance').insert({
-    meeting_id: meeting.id,
-    teacher_id: userData.user.id
+  if (journalError) {
+    await supabase.from('meetings').delete().eq('id', meeting.id).eq('teacher_id', userData.user.id)
+    return { error: journalError.message }
+  }
+
+  const { error: attendanceError } = await supabase.from('attendance').insert({
+    meeting_id: meeting.id, teacher_id: userData.user.id
   })
+  if (attendanceError) {
+    await supabase.from('meetings').delete().eq('id', meeting.id).eq('teacher_id', userData.user.id)
+    return { error: attendanceError.message }
+  }
 
   revalidatePath('/dashboard/journals')
+  revalidatePath('/dashboard/attendance')
   return { success: true }
 }
