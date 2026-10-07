@@ -10,7 +10,7 @@ export async function getProfileData() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, nip, nuptk, phone, subject_specialty, active_academic_year_id')
+    .select('full_name, nip, nuptk, phone, subject_specialty, active_academic_year_id, school_id')
     .eq('id', userData.user.id)
     .single()
 
@@ -20,11 +20,16 @@ export async function getProfileData() {
     .eq('teacher_id', userData.user.id)
     .order('created_at', { ascending: false })
 
-  const { data: school } = await supabase
-    .from('schools')
-    .select('id, name, address')
-    .limit(1)
-    .single()
+  let school = null
+  if (profile?.school_id) {
+    const { data } = await supabase
+      .from('schools')
+      .select('id, name, address')
+      .eq('id', profile.school_id)
+      .eq('teacher_id', userData.user.id)
+      .maybeSingle()
+    school = data
+  }
 
   return {
     profile: profile || {},
@@ -57,18 +62,39 @@ export async function saveSchool(formData: FormData) {
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { error: 'Unauthorized' }
 
-  const schoolName = formData.get('schoolName') as string
-  const schoolAddress = formData.get('schoolAddress') as string
-  const existingSchoolId = formData.get('schoolId') as string
+  const schoolName = String(formData.get('schoolName') || '').trim()
+  const schoolAddress = String(formData.get('schoolAddress') || '').trim()
+  const existingSchoolId = String(formData.get('schoolId') || '').trim()
+
+  if (!schoolName) return { error: 'Nama sekolah wajib diisi.' }
 
   if (existingSchoolId) {
-    const { error } = await supabase.from('schools').update({ name: schoolName, address: schoolAddress }).eq('id', existingSchoolId)
+    const { error } = await supabase
+      .from('schools')
+      .update({ name: schoolName, address: schoolAddress })
+      .eq('id', existingSchoolId)
+      .eq('teacher_id', userData.user.id)
+
     if (error) return { error: error.message }
   } else {
-    const { data: school } = await supabase.from('schools').insert({ name: schoolName, address: schoolAddress }).select('id').single()
-    if (school) {
-      await supabase.from('profiles').update({ school_id: school.id }).eq('id', userData.user.id)
-    }
+    const { data: school, error } = await supabase
+      .from('schools')
+      .insert({
+        name: schoolName,
+        address: schoolAddress,
+        teacher_id: userData.user.id,
+      })
+      .select('id')
+      .single()
+
+    if (error) return { error: error.message }
+
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ school_id: school.id })
+      .eq('id', userData.user.id)
+
+    if (profileError) return { error: profileError.message }
   }
 
   revalidatePath('/dashboard/settings')
@@ -85,15 +111,21 @@ export async function saveAcademicYear(formData: FormData) {
   const semester = formData.get('semester') as string
 
   if (academicYearId) {
-    // Set selected year as active
     await supabase.from('academic_years').update({ is_active: false }).eq('teacher_id', userData.user.id)
-    await supabase.from('academic_years').update({ is_active: true }).eq('id', academicYearId)
+    await supabase.from('academic_years').update({ is_active: true }).eq('id', academicYearId).eq('teacher_id', userData.user.id)
     await supabase.from('profiles').update({ active_academic_year_id: academicYearId }).eq('id', userData.user.id)
   } else if (yearName && semester) {
-    // Create new academic year
-    const { data: newYear } = await supabase.from('academic_years').insert({
-      name: yearName, semester, is_active: true, teacher_id: userData.user.id
+    await supabase.from('academic_years').update({ is_active: false }).eq('teacher_id', userData.user.id)
+
+    const { data: newYear, error } = await supabase.from('academic_years').insert({
+      name: yearName,
+      semester,
+      is_active: true,
+      teacher_id: userData.user.id
     }).select('id').single()
+
+    if (error) return { error: error.message }
+
     if (newYear) {
       await supabase.from('profiles').update({ active_academic_year_id: newYear.id }).eq('id', userData.user.id)
     }
