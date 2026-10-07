@@ -10,8 +10,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Download, FileText, Link as LinkIcon, Loader2, Plus, Search, Trash2, Upload } from "lucide-react"
-import { createMaterial, deleteMaterial } from "./actions"
+import { Download, FileText, Link as LinkIcon, Loader2, Plus, Search, Trash2, Upload, Pencil } from "lucide-react"
+import { createMaterial, deleteMaterial, updateMaterial } from "./actions"
 import { useToast } from "@/hooks/use-toast"
 import { format, parseISO } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
@@ -34,6 +34,7 @@ export default function MaterialsClient({
   const [open, setOpen] = useState(false)
   const [fileType, setFileType] = useState("PDF")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [editingMaterial, setEditingMaterial] = useState<any | null>(null)
   const [isPending, startTransition] = useTransition()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
@@ -61,6 +62,20 @@ export default function MaterialsClient({
       toast({ title: "Berhasil!", description: "Bahan ajar berhasil ditambahkan." })
       setOpen(false)
       setSelectedFile(null)
+      window.location.reload()
+    })
+  }
+
+  function handleEdit(formData: FormData) {
+    if (!editingMaterial) return
+    startTransition(async () => {
+      const result = await updateMaterial(editingMaterial.id, formData)
+      if (result.error) {
+        toast({ title: "Gagal", description: result.error, variant: "destructive" })
+        return
+      }
+      setEditingMaterial(null)
+      toast({ title: "Berhasil", description: "Bahan ajar diperbarui." })
       window.location.reload()
     })
   }
@@ -145,6 +160,9 @@ export default function MaterialsClient({
                       Buka
                     </Button>
                   )}
+                  <Button variant="ghost" size="sm" onClick={() => setEditingMaterial(m)} disabled={isPending}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -160,6 +178,45 @@ export default function MaterialsClient({
           ))}
         </div>
       )}
+
+      <Dialog open={!!editingMaterial} onOpenChange={(value) => !value && setEditingMaterial(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[560px]">
+          <form key={editingMaterial?.id} action={handleEdit}>
+            <DialogHeader><DialogTitle>Edit Bahan Ajar</DialogTitle><DialogDescription>Ubah metadata dan keterkaitan materi. File/URL tetap seperti sebelumnya.</DialogDescription></DialogHeader>
+            {editingMaterial && (
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2"><Label>Judul</Label><Input name="title" defaultValue={editingMaterial.title} required /></div>
+                <div className="grid gap-2"><Label>Deskripsi</Label><Textarea name="description" defaultValue={editingMaterial.description || ""} /></div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label>Mata Pelajaran</Label>
+                    <Select name="subject_id" defaultValue={editingMaterial.subject_id} items={subjects.map(x => ({ value: x.id, label: x.name }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{subjects.map(x => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Kelas</Label>
+                    <Select name="class_id" defaultValue={editingMaterial.class_id || ""} items={classes.map(x => ({ value: x.id, label: x.name }))}>
+                      <SelectTrigger><SelectValue placeholder="Opsional" /></SelectTrigger>
+                      <SelectContent>{classes.map(x => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid gap-2"><Label>Topik</Label><Input name="topic" defaultValue={editingMaterial.topic || ""} /></div>
+                <div className="grid gap-2">
+                  <Label>Pertemuan</Label>
+                  <Select name="meeting_id" defaultValue={editingMaterial.meeting_id || ""} items={meetings.map(x => ({ value: x.id, label: `${x.classes?.name} · ${x.subjects?.name} · Pertemuan ${x.meeting_number}` }))}>
+                    <SelectTrigger><SelectValue placeholder="Opsional" /></SelectTrigger>
+                    <SelectContent>{meetings.map(x => <SelectItem key={x.id} value={x.id}>{x.classes?.name} · {x.subjects?.name} · Pertemuan {x.meeting_number}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setEditingMaterial(null)}>Batal</Button><Button type="submit" disabled={isPending}>Simpan</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[560px]">
