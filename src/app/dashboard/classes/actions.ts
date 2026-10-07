@@ -105,3 +105,62 @@ export async function updateStudent(studentId: string, formData: FormData) {
   revalidatePath('/dashboard/classes')
   return { success: true }
 }
+
+export async function updateClass(classId: string, formData: FormData) {
+  const supabase = await createClient()
+  const { data: userData } = await supabase.auth.getUser()
+  if (!userData?.user) return { error: 'Anda harus login terlebih dahulu.' }
+
+  const name = String(formData.get('name') || '').trim()
+  const gradeLevel = String(formData.get('gradeLevel') || '').trim()
+  const homeroomTeacher = String(formData.get('homeroomTeacher') || '').trim()
+  if (!name || !['1', '2', '3', '4', '5', '6'].includes(gradeLevel)) {
+    return { error: 'Nama dan tingkat kelas (1–6) wajib diisi.' }
+  }
+
+  const { data, error } = await supabase.from('classes')
+    .update({ name, grade_level: gradeLevel, homeroom_teacher: homeroomTeacher })
+    .eq('id', classId)
+    .eq('teacher_id', userData.user.id)
+    .select('id')
+    .maybeSingle()
+  if (error) return { error: error.message }
+  if (!data) return { error: 'Kelas tidak ditemukan atau tidak diizinkan.' }
+  revalidatePath('/dashboard/classes')
+  return { success: true }
+}
+
+export async function deleteClass(classId: string) {
+  const supabase = await createClient()
+  const { data: userData } = await supabase.auth.getUser()
+  if (!userData?.user) return { error: 'Anda harus login terlebih dahulu.' }
+
+  const { data: owned, error: ownerError } = await supabase.from('classes')
+    .select('id').eq('id', classId).eq('teacher_id', userData.user.id).maybeSingle()
+  if (ownerError) return { error: ownerError.message }
+  if (!owned) return { error: 'Kelas tidak ditemukan atau tidak diizinkan.' }
+
+  // Existing foreign keys use ON DELETE CASCADE. Never delete a class while
+  // dependent student / teaching data may be destroyed by that cascade.
+  const relatedTables = [
+    'students', 'schedules', 'meetings', 'assessments', 'learning_materials'
+  ] as const
+  for (const table of relatedTables) {
+    const { count, error } = await supabase.from(table)
+      .select('id', { count: 'exact', head: true })
+      .eq('class_id', classId).eq('teacher_id', userData.user.id)
+    if (error) return { error: 'Gagal memeriksa data terkait: ' + error.message }
+    if (count === null) return { error: 'Tidak dapat memastikan kelas aman dihapus.' }
+    if (count > 0) return {
+      error: 'Kelas memiliki data siswa atau pembelajaran terkait. Pindahkan/hapus data terkait terlebih dahulu agar tidak kehilangan data.'
+    }
+  }
+
+  const { data, error } = await supabase.from('classes').delete()
+    .eq('id', classId).eq('teacher_id', userData.user.id)
+    .select('id').maybeSingle()
+  if (error) return { error: error.message }
+  if (!data) return { error: 'Kelas sudah tidak tersedia.' }
+  revalidatePath('/dashboard/classes')
+  return { success: true }
+}
