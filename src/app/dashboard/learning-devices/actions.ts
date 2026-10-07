@@ -3,22 +3,25 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
+function storagePathFromPublicUrl(url: string | null) {
+  if (!url) return null
+  const marker = '/storage/v1/object/public/documents/'
+  const index = url.indexOf(marker)
+  return index >= 0 ? decodeURIComponent(url.slice(index + marker.length)) : null
+}
+
 export async function getLearningDevices() {
   const supabase = await createClient()
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { error: 'Unauthorized' }
 
   const { data: profile } = await supabase.from('profiles').select('active_academic_year_id').eq('id', userData.user.id).single()
-
-  const query = supabase
-    .from('learning_devices')
+  const query = supabase.from('learning_devices')
     .select('id, title, category, file_url, file_name, created_at')
     .eq('teacher_id', userData.user.id)
     .order('created_at', { ascending: false })
 
-  if (profile?.active_academic_year_id) {
-    query.eq('academic_year_id', profile.active_academic_year_id)
-  }
+  if (profile?.active_academic_year_id) query.eq('academic_year_id', profile.active_academic_year_id)
 
   const { data, error } = await query
   if (error) return { error: error.message }
@@ -33,32 +36,28 @@ export async function createLearningDevice(formData: FormData) {
   const { data: profile } = await supabase.from('profiles').select('active_academic_year_id').eq('id', userData.user.id).single()
   if (!profile?.active_academic_year_id) return { error: 'Tahun ajaran aktif belum diatur.' }
 
-  const title = formData.get('title') as string
-  const category = formData.get('category') as string
-  const file = formData.get('file') as File
+  const title = String(formData.get('title') || '').trim()
+  const category = String(formData.get('category') || '').trim()
+  const file = formData.get('file')
 
   if (!title || !category) return { error: 'Judul dan kategori wajib diisi.' }
+  if (!(file instanceof File) || file.size === 0) return { error: 'File perangkat pembelajaran wajib dipilih.' }
 
-  let fileUrl: string | null = null
-  let fileName: string | null = null
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-')
+  const filePath = `${userData.user.id}/learning-devices/${Date.now()}-${safeName}`
+  const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, file, { upsert: false })
+  if (uploadError) return { error: `Upload gagal: ${uploadError.message}` }
 
-  if (file && file.size > 0) {
-    const fileExt = file.name.split('.').pop()
-    const filePath = `${userData.user.id}/learning-devices/${Date.now()}.${fileExt}`
-    const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, file, { upsert: true })
-    if (!uploadError) {
-      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath)
-      fileUrl = urlData.publicUrl
-      fileName = file.name
-    }
-  }
-
+  const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath)
   const { error } = await supabase.from('learning_devices').insert({
-    title, category, file_url: fileUrl, file_name: fileName,
-    academic_year_id: profile.active_academic_year_id,
-    teacher_id: userData.user.id
+    title, category, file_url: urlData.publicUrl, file_name: file.name,
+    academic_year_id: profile.active_academic_year_id, teacher_id: userData.user.id
   })
-  if (error) return { error: error.message }
+
+  if (error) {
+    await supabase.storage.from('documents').remove([filePath])
+    return { error: error.message }
+  }
 
   revalidatePath('/dashboard/learning-devices')
   return { success: true }
@@ -68,6 +67,18 @@ export async function deleteLearningDevice(id: string) {
   const supabase = await createClient()
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { error: 'Unauthorized' }
+
+  const { data: device, error: readError } = await supabase.from('learning_devices')
+    .select('id, file_url').eq('id', id).eq('teacher_id', userData.user.id).maybeSingle()
+
+  if (readError) return { error: readError.message }
+  if (!device) return { error: 'Perangkat pembelajaran tidak ditemukan.' }
+
+  const storagePath = storagePathFromPublicUrl(device.file_url)
+  if (storagePath) {
+    const { error: storageError } = await supabase.storage.from('documents').remove([storagePath])
+    if (storageError) return { error: `Gagal menghapus file: ${storageError.message}` }
+  }
 
   const { error } = await supabase.from('learning_devices').delete().eq('id', id).eq('teacher_id', userData.user.id)
   if (error) return { error: error.message }
