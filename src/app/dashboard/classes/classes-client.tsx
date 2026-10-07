@@ -8,10 +8,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Users, Loader2, Pencil, ChevronLeft } from "lucide-react"
+import { Plus, Users, Loader2, Pencil, Trash2, ChevronLeft } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { addClass, addStudent, getStudentsByClass, updateStudent } from "./actions"
+import { addClass, addStudent, getStudentsByClass, updateStudent, updateClass, deleteClass } from "./actions"
 import { useToast } from "@/hooks/use-toast"
 
 const GRADE_LEVELS = ["1", "2", "3", "4", "5", "6"]
@@ -22,6 +22,8 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
   const [students, setStudents] = useState<any[]>([])
   const [loadingStudents, setLoadingStudents] = useState(false)
   const [openAddClass, setOpenAddClass] = useState(false)
+  const [editingClass, setEditingClass] = useState<any | null>(null)
+  const [classToDelete, setClassToDelete] = useState<any | null>(null)
   const [openAddStudent, setOpenAddStudent] = useState(false)
   const [openEditStudent, setOpenEditStudent] = useState(false)
   const [editingStudent, setEditingStudent] = useState<any | null>(null)
@@ -45,6 +47,35 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
         toast({ title: "Berhasil!", description: "Kelas baru ditambahkan." })
         setOpenAddClass(false)
         window.location.reload()
+      }
+    })
+  }
+
+
+  function handleEditClass(formData: FormData) {
+    if (!editingClass) return
+    startTransition(async () => {
+      const result = await updateClass(editingClass.id, formData)
+      if (result.error) {
+        toast({ title: 'Gagal mengedit kelas', description: result.error, variant: 'destructive' })
+      } else {
+        setEditingClass(null)
+        toast({ title: 'Berhasil', description: 'Data kelas diperbarui.' })
+        window.location.reload()
+      }
+    })
+  }
+
+  function handleDeleteClass() {
+    if (!classToDelete) return
+    startTransition(async () => {
+      const result = await deleteClass(classToDelete.id)
+      if (result.error) {
+        toast({ title: 'Kelas tidak dapat dihapus', description: result.error, variant: 'destructive' })
+      } else {
+        setClasses(prev => prev.filter(cls => cls.id !== classToDelete.id))
+        setClassToDelete(null)
+        toast({ title: 'Berhasil', description: 'Kelas dihapus.' })
       }
     })
   }
@@ -128,7 +159,15 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                 <CardContent>
                   <div className="flex justify-between items-center mt-4">
                     <Badge variant="secondary">{(cls.students as any[])?.[0]?.count ?? 0} Siswa</Badge>
-                    <Button variant="outline" size="sm" onClick={() => handleViewStudents(cls)}>Lihat Siswa</Button>
+                    <div className="flex flex-wrap items-center justify-end gap-1">
+                      <Button variant="outline" size="sm" onClick={() => handleViewStudents(cls)}>Lihat Siswa</Button>
+                      <Button variant="ghost" size="icon-sm" aria-label={`Edit kelas ${cls.name}`} title="Edit kelas" onClick={() => setEditingClass(cls)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon-sm" className="text-destructive hover:text-destructive" aria-label={`Hapus kelas ${cls.name}`} title="Hapus kelas" onClick={() => setClassToDelete(cls)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -207,6 +246,63 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
               <Button type="submit" disabled={isPending}>{isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Simpan</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+
+      {/* Edit Class Dialog */}
+      <Dialog open={!!editingClass} onOpenChange={(open) => { if (!open && !isPending) setEditingClass(null) }}>
+        <DialogContent>
+          <form key={editingClass?.id} action={handleEditClass}>
+            <DialogHeader>
+              <DialogTitle>Edit Kelas</DialogTitle>
+              <DialogDescription>Perbarui nama, tingkat, dan wali kelas.</DialogDescription>
+            </DialogHeader>
+            {editingClass && (
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-class-name">Nama Kelas</Label>
+                  <Input id="edit-class-name" name="name" defaultValue={editingClass.name} required />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Tingkat Kelas</Label>
+                  <Select name="gradeLevel" defaultValue={String(editingClass.grade_level)} required>
+                    <SelectTrigger><SelectValue placeholder="Pilih Tingkat" /></SelectTrigger>
+                    <SelectContent>
+                      {GRADE_LEVELS.map(g => <SelectItem key={g} value={g}>Kelas {g}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-homeroom">Wali Kelas</Label>
+                  <Input id="edit-homeroom" name="homeroomTeacher" defaultValue={editingClass.homeroom_teacher || ''} />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button type="button" variant="outline" disabled={isPending} onClick={() => setEditingClass(null)}>Batal</Button>
+              <Button type="submit" disabled={isPending}>{isPending ? 'Menyimpan...' : 'Simpan Perubahan'}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Class Confirmation */}
+      <Dialog open={!!classToDelete} onOpenChange={(open) => { if (!open && !isPending) setClassToDelete(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hapus Kelas?</DialogTitle>
+            <DialogDescription>
+              Yakin ingin menghapus kelas "{classToDelete?.name}"? Tindakan ini tidak bisa dibatalkan.
+              Kelas dengan siswa atau data pembelajaran terkait tidak akan dihapus demi keamanan data.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={isPending} onClick={() => setClassToDelete(null)}>Batal</Button>
+            <Button type="button" variant="destructive" disabled={isPending} onClick={handleDeleteClass}>
+              {isPending ? 'Menghapus...' : 'Ya, Hapus Kelas'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
