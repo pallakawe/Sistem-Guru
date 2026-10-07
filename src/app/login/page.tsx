@@ -39,7 +39,7 @@ export default function LoginPage() {
   return (
     <div className="relative min-h-screen overflow-hidden">
       <Image
-        src="/login-background.jpg"
+        src="/login-background.png"
         alt=""
         fill
         priority
