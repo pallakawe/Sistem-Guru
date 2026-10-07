@@ -96,7 +96,7 @@ export default function AttendanceClient({ meetings }: { meetings: any[] }) {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Pertemuan</Label>
-              <Select value={selectedMeetingId} onValueChange={setSelectedMeetingId}>
+              <Select value={selectedMeetingId} onValueChange={(value) => setSelectedMeetingId(value ?? "")}>
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih Pertemuan" />
                 </SelectTrigger>
