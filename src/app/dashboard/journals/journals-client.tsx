@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Plus, BookOpen, Calendar, Eye, Loader2 } from "lucide-react"
+import { Plus, BookOpen, Calendar, Eye, Loader2, Pencil, Trash2 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -21,7 +21,8 @@ import {
 } from "@/components/ui/dialog"
 import { format, parseISO } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
-import { createJournal } from "./actions"
+import { createJournal, updateJournal, deleteJournal } from "./actions"
+import { useToast } from "@/hooks/use-toast"
 
 export default function JournalsClient({ initialJournals, classes, subjects }: { 
   initialJournals: any[], 
@@ -32,6 +33,9 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [viewJournal, setViewJournal] = useState<any | null>(null)
+  const [editingJournal, setEditingJournal] = useState<any | null>(null)
+  const [journalToDelete, setJournalToDelete] = useState<any | null>(null)
+  const { toast } = useToast()
 
   async function onSubmit(formData: FormData) {
     setIsLoading(true)
@@ -47,6 +51,34 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
 
     setOpen(false)
     setIsLoading(false)
+  }
+
+  async function onEdit(formData: FormData) {
+    if (!editingJournal) return
+    setIsLoading(true)
+    const result = await updateJournal(editingJournal.id, formData)
+    setIsLoading(false)
+    if (result?.error) {
+      toast({ title: "Gagal", description: result.error, variant: "destructive" })
+      return
+    }
+    setEditingJournal(null)
+    toast({ title: "Berhasil", description: "Jurnal diperbarui." })
+    window.location.reload()
+  }
+
+  async function onDelete() {
+    if (!journalToDelete) return
+    setIsLoading(true)
+    const result = await deleteJournal(journalToDelete.id)
+    setIsLoading(false)
+    if (result?.error) {
+      toast({ title: "Gagal", description: result.error, variant: "destructive" })
+      return
+    }
+    setJournalToDelete(null)
+    toast({ title: "Dihapus", description: "Jurnal, pertemuan, dan absensi terkait telah dihapus." })
+    window.location.reload()
   }
 
   return (
@@ -154,9 +186,11 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
                       <Badge variant="outline">{j.meetings?.classes?.name}</Badge>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setViewJournal(j)}>
-                    <Eye className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => setViewJournal(j)}><Eye className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => setEditingJournal(j)}><Pencil className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setJournalToDelete(j)}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -171,6 +205,49 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
           ))
         )}
       </div>
+
+      <Dialog open={!!editingJournal} onOpenChange={(value) => !value && setEditingJournal(null)}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <form key={editingJournal?.id} action={onEdit}>
+            <DialogHeader><DialogTitle>Edit Jurnal</DialogTitle><DialogDescription>Perbarui jurnal dan data pertemuan.</DialogDescription></DialogHeader>
+            {editingJournal && (
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2"><Label>Kelas</Label>
+                    <Select name="classId" defaultValue={editingJournal.meetings?.classes?.id} items={classes.map(x => ({ value: x.id, label: x.name }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{classes.map(x => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2"><Label>Mata Pelajaran</Label>
+                    <Select name="subjectId" defaultValue={editingJournal.meetings?.subjects?.id} items={subjects.map(x => ({ value: x.id, label: x.name }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{subjects.map(x => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2"><Label>Pertemuan Ke-</Label><Input name="meetingNumber" type="number" min={1} defaultValue={editingJournal.meetings?.meeting_number} required /></div>
+                  <div className="grid gap-2"><Label>Tanggal</Label><Input name="date" type="date" defaultValue={editingJournal.meetings?.date} required /></div>
+                </div>
+                <div className="grid gap-2"><Label>Materi / Topik</Label><Input name="topic" defaultValue={editingJournal.topic} required /></div>
+                <div className="grid gap-2"><Label>Tujuan Pembelajaran</Label><Textarea name="objectives" defaultValue={editingJournal.learning_objectives || ""} /></div>
+                <div className="grid gap-2"><Label>Kegiatan Pembelajaran</Label><Textarea name="activities" defaultValue={editingJournal.activities || ""} /></div>
+                <div className="grid gap-2"><Label>Metode</Label><Input name="method" defaultValue={editingJournal.method || ""} /></div>
+                <div className="grid gap-2"><Label>Catatan</Label><Textarea name="notes" defaultValue={editingJournal.notes || ""} /></div>
+                <div className="grid gap-2"><Label>Kendala</Label><Textarea name="obstacles" defaultValue={editingJournal.obstacles || ""} /></div>
+                <div className="grid gap-2"><Label>Tindak Lanjut</Label><Textarea name="followUp" defaultValue={editingJournal.follow_up || ""} /></div>
+              </div>
+            )}
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setEditingJournal(null)}>Batal</Button><Button type="submit" disabled={isLoading}>Simpan</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!journalToDelete} onOpenChange={(value) => !value && setJournalToDelete(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Hapus Jurnal?</DialogTitle><DialogDescription>Pertemuan dan absensi terkait ikut dihapus. Bahan ajar tetap tersimpan tetapi tidak lagi terhubung ke pertemuan ini.</DialogDescription></DialogHeader>
+          <DialogFooter><Button variant="outline" onClick={() => setJournalToDelete(null)}>Batal</Button><Button variant="destructive" onClick={onDelete} disabled={isLoading}>Hapus</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* View Journal Dialog */}
       <Dialog open={!!viewJournal} onOpenChange={(open) => !open && setViewJournal(null)}>
