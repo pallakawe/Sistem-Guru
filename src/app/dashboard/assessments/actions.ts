@@ -162,3 +162,58 @@ export async function saveScores(assessmentId: string, scores: { student_id: str
   revalidatePath('/dashboard/assessments')
   return { success: true }
 }
+
+
+export async function updateAssessment(assessmentId: string, formData: FormData) {
+  const { supabase, user, activeYearId } = await getActiveYearAndUser()
+  if (!user) return { error: 'Unauthorized' }
+  if (!activeYearId) return { error: 'Tahun ajaran aktif belum diatur.' }
+
+  const title = String(formData.get('title') || '').trim()
+  const type = String(formData.get('type') || '').trim()
+  const classId = String(formData.get('classId') || '').trim()
+  const subjectId = String(formData.get('subjectId') || '').trim()
+  const weight = Number(formData.get('weight') || 0)
+
+  if (!title || !type || !classId || !subjectId) return { error: 'Semua field wajib diisi.' }
+  if (!Number.isFinite(weight) || weight < 0 || weight > 100) return { error: 'Bobot harus 0 sampai 100.' }
+
+  const [{ data: ownedClass }, { data: ownedSubject }] = await Promise.all([
+    supabase.from('classes').select('id').eq('id', classId).eq('teacher_id', user.id).eq('academic_year_id', activeYearId).maybeSingle(),
+    supabase.from('subjects').select('id').eq('id', subjectId).eq('teacher_id', user.id).maybeSingle(),
+  ])
+  if (!ownedClass || !ownedSubject) return { error: 'Kelas atau mata pelajaran tidak valid.' }
+
+  const { data, error } = await supabase.from('assessments')
+    .update({ title, type, weight, class_id: classId, subject_id: subjectId })
+    .eq('id', assessmentId)
+    .eq('teacher_id', user.id)
+    .eq('academic_year_id', activeYearId)
+    .select('id')
+    .maybeSingle()
+
+  if (error) return { error: error.message }
+  if (!data) return { error: 'Komponen penilaian tidak ditemukan.' }
+
+  revalidatePath('/dashboard/assessments')
+  return { success: true }
+}
+
+export async function deleteAssessment(assessmentId: string) {
+  const supabase = await createClient()
+  const { data: userData } = await supabase.auth.getUser()
+  if (!userData?.user) return { error: 'Unauthorized' }
+
+  const { data, error } = await supabase.from('assessments')
+    .delete()
+    .eq('id', assessmentId)
+    .eq('teacher_id', userData.user.id)
+    .select('id')
+    .maybeSingle()
+
+  if (error) return { error: error.message }
+  if (!data) return { error: 'Komponen penilaian tidak ditemukan.' }
+
+  revalidatePath('/dashboard/assessments')
+  return { success: true }
+}
