@@ -27,10 +27,15 @@ export async function getClasses() {
 
 export async function getStudentsByClass(classId: string) {
   const supabase = await createClient()
+  const { data: userData } = await supabase.auth.getUser()
+  if (!userData?.user) return { error: 'Unauthorized' }
+
   const { data, error } = await supabase
     .from('students')
     .select('id, full_name, nis, nisn, gender, student_number, is_active')
     .eq('class_id', classId)
+    .eq('teacher_id', userData.user.id)
+    .order('student_number', { ascending: true, nullsFirst: false })
     .order('full_name', { ascending: true })
   if (error) return { error: error.message }
   return { data: data || [] }
@@ -74,6 +79,19 @@ export async function addStudent(formData: FormData) {
   const studentNumber = parseInt(formData.get('studentNumber') as string) || null
 
   if (!classId || !fullName) return { error: 'Kelas dan nama siswa wajib diisi.' }
+
+  const { data: profile } = await supabase.from('profiles')
+    .select('active_academic_year_id').eq('id', userData.user.id).single()
+
+  const classQuery = supabase.from('classes').select('id')
+    .eq('id', classId).eq('teacher_id', userData.user.id)
+
+  if (profile?.active_academic_year_id) {
+    classQuery.eq('academic_year_id', profile.active_academic_year_id)
+  }
+
+  const { data: ownedClass } = await classQuery.maybeSingle()
+  if (!ownedClass) return { error: 'Kelas tidak valid atau bukan kelas pada tahun ajaran aktif.' }
 
   const { error } = await supabase.from('students').insert({
     class_id: classId, full_name: fullName, nis, nisn, gender,
