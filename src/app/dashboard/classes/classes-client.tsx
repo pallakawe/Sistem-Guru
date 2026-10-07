@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Plus, Users, Loader2, Pencil, Trash2, ChevronLeft } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { addClass, addStudent, getStudentsByClass, updateStudent, updateClass, deleteClass } from "./actions"
+import { addClass, addStudent, getStudentsByClass, updateStudent, updateClass, deleteClass, deleteStudent } from "./actions"
 import { useToast } from "@/hooks/use-toast"
 
 const GRADE_LEVELS = ["1", "2", "3", "4", "5", "6"]
@@ -27,6 +27,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
   const [openAddStudent, setOpenAddStudent] = useState(false)
   const [openEditStudent, setOpenEditStudent] = useState(false)
   const [editingStudent, setEditingStudent] = useState<any | null>(null)
+  const [studentToDelete, setStudentToDelete] = useState<any | null>(null)
   const [isPending, startTransition] = useTransition()
   const { toast } = useToast()
 
@@ -109,6 +110,26 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
         const res = await getStudentsByClass(selectedClass.id)
         if (!res.error) setStudents(res.data || [])
       }
+    })
+  }
+
+  function handleDeleteStudent() {
+    if (!studentToDelete || !selectedClass) return
+    startTransition(async () => {
+      const result = await deleteStudent(studentToDelete.id)
+      if (result.error) {
+        toast({ title: "Gagal", description: result.error, variant: "destructive" })
+        return
+      }
+      const res = await getStudentsByClass(selectedClass.id)
+      if (!res.error) setStudents(res.data || [])
+      setStudentToDelete(null)
+      toast({
+        title: result.deactivated ? "Siswa dinonaktifkan" : "Siswa dihapus",
+        description: result.deactivated
+          ? "Siswa memiliki riwayat absensi/nilai, jadi dinonaktifkan agar riwayat tetap aman."
+          : "Data siswa berhasil dihapus."
+      })
     })
   }
 
@@ -205,9 +226,14 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                     <TableCell>{s.gender || '-'}</TableCell>
                     <TableCell><Badge variant={s.is_active ? 'default' : 'secondary'}>{s.is_active ? 'Aktif' : 'Tidak Aktif'}</Badge></TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => { setEditingStudent(s); setOpenEditStudent(true) }}>
-                        <Pencil className="h-4 w-4 mr-1" /> Edit
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => { setEditingStudent(s); setOpenEditStudent(true) }}>
+                          <Pencil className="h-4 w-4 mr-1" /> Edit
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setStudentToDelete(s)}>
+                          <Trash2 className="h-4 w-4 mr-1" /> Hapus
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -348,6 +374,25 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
               <Button type="submit" disabled={isPending}>{isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Simpan</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Student Dialog */}
+      <Dialog open={!!studentToDelete} onOpenChange={(open) => { if (!open && !isPending) setStudentToDelete(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hapus Siswa?</DialogTitle>
+            <DialogDescription>
+              Yakin ingin menghapus {studentToDelete?.full_name}? Jika siswa sudah memiliki riwayat absensi atau nilai,
+              sistem akan menonaktifkannya agar riwayat tetap tersimpan.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={isPending} onClick={() => setStudentToDelete(null)}>Batal</Button>
+            <Button type="button" variant="destructive" disabled={isPending} onClick={handleDeleteStudent}>
+              {isPending ? "Memproses..." : "Lanjutkan"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
