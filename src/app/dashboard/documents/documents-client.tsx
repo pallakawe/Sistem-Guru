@@ -7,11 +7,11 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Upload, Download, FileText, Search, Trash2, FolderOpen, Loader2 } from "lucide-react"
+import { Plus, Upload, Download, FileText, Search, Trash2, FolderOpen, Loader2, Pencil } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { format, parseISO } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
-import { createDocument, deleteDocument } from "./actions"
+import { createDocument, deleteDocument, updateDocument } from "./actions"
 import { useToast } from "@/hooks/use-toast"
 
 const DOC_CATEGORIES = ["Administrasi Guru", "Perangkat Pembelajaran", "Bahan Ajar", "Penilaian", "Surat", "Laporan", "Dokumen Lainnya"]
@@ -41,6 +41,7 @@ export default function DocumentsClient({ initialDocs }: { initialDocs: any[] })
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [editingDoc, setEditingDoc] = useState<any | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
@@ -59,6 +60,20 @@ export default function DocumentsClient({ initialDocs }: { initialDocs: any[] })
         toast({ title: "Berhasil!", description: "Dokumen berhasil diunggah." })
         setOpen(false)
         setSelectedFile(null)
+        window.location.reload()
+      }
+    })
+  }
+
+  function handleEdit(formData: FormData) {
+    if (!editingDoc) return
+    startTransition(async () => {
+      const result = await updateDocument(editingDoc.id, formData)
+      if (result.error) {
+        toast({ title: "Gagal", description: result.error, variant: "destructive" })
+      } else {
+        setEditingDoc(null)
+        toast({ title: "Berhasil", description: "Dokumen diperbarui." })
         window.location.reload()
       }
     })
@@ -152,6 +167,7 @@ export default function DocumentsClient({ initialDocs }: { initialDocs: any[] })
                       <Download className="h-4 w-4" />
                     </Button>
                   )}
+                  <Button variant="ghost" size="sm" onClick={() => setEditingDoc(d)}><Pencil className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDelete(d.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -161,6 +177,27 @@ export default function DocumentsClient({ initialDocs }: { initialDocs: any[] })
           ))}
         </div>
       )}
+
+      <Dialog open={!!editingDoc} onOpenChange={(value) => !value && setEditingDoc(null)}>
+        <DialogContent className="sm:max-w-[480px]">
+          <form key={editingDoc?.id} action={handleEdit}>
+            <DialogHeader><DialogTitle>Edit Dokumen</DialogTitle><DialogDescription>Ubah judul atau kategori tanpa mengunggah ulang file.</DialogDescription></DialogHeader>
+            {editingDoc && (
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2"><Label>Judul Dokumen</Label><Input name="title" defaultValue={editingDoc.title} required /></div>
+                <div className="grid gap-2">
+                  <Label>Kategori</Label>
+                  <Select name="category" defaultValue={editingDoc.category} items={DOC_CATEGORIES.map(x => ({ value: x, label: x }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{DOC_CATEGORIES.map(x => <SelectItem key={x} value={x}>{x}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setEditingDoc(null)}>Batal</Button><Button type="submit" disabled={isPending}>Simpan</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Upload Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
@@ -183,7 +220,7 @@ export default function DocumentsClient({ initialDocs }: { initialDocs: any[] })
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label>File (Opsional)</Label>
+                <Label>File</Label>
                 <div
                   className="border-2 border-dashed rounded-lg p-6 text-center hover:bg-muted/50 cursor-pointer transition-colors"
                   onClick={() => fileInputRef.current?.click()}
