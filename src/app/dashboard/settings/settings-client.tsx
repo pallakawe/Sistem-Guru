@@ -9,17 +9,18 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { User, School, BookOpen, Save, Loader2 } from "lucide-react"
-import { saveProfile, saveSchool, saveAcademicYear } from "./actions"
+import { User, School, BookOpen, Save, Loader2, Plus, Trash2 } from "lucide-react"
+import { saveProfile, saveSchool, saveAcademicYear, addSubject, deleteSubject } from "./actions"
 import { useToast } from "@/hooks/use-toast"
 
 const ACADEMIC_YEARS = ["2024/2025", "2025/2026", "2026/2027", "2027/2028"]
 const SEMESTERS = ["Ganjil", "Genap"]
 
-export default function SettingsClient({ profile, school, academicYears, userEmail }: {
-  profile: any, school: any, academicYears: any[], userEmail: string
+export default function SettingsClient({ profile, school, academicYears, subjects: initialSubjects, userEmail }: {
+  profile: any, school: any, academicYears: any[], subjects: any[], userEmail: string
 }) {
   const [isPending, startTransition] = useTransition()
+  const [subjects, setSubjects] = useState<any[]>(initialSubjects || [])
   const { toast } = useToast()
 
   const initials = (profile.full_name || userEmail || "?").split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase()
@@ -41,6 +42,32 @@ export default function SettingsClient({ profile, school, academicYears, userEma
       const result = await saveSchool(formData)
       if (result.error) toast({ title: "Gagal", description: result.error, variant: "destructive" })
       else toast({ title: "Berhasil!", description: "Data sekolah berhasil disimpan." })
+    })
+  }
+
+  function handleAddSubject(formData: FormData) {
+    startTransition(async () => {
+      const result = await addSubject(formData)
+      if (result.error) {
+        toast({ title: "Gagal menambah mapel", description: result.error, variant: "destructive" })
+        return
+      }
+
+      toast({ title: "Berhasil!", description: "Mata pelajaran berhasil ditambahkan." })
+      window.location.reload()
+    })
+  }
+
+  function handleDeleteSubject(subjectId: string) {
+    startTransition(async () => {
+      const result = await deleteSubject(subjectId)
+      if (result.error) {
+        toast({ title: "Tidak dapat menghapus mapel", description: result.error, variant: "destructive" })
+        return
+      }
+
+      setSubjects(prev => prev.filter(subject => subject.id !== subjectId))
+      toast({ title: "Dihapus", description: "Mata pelajaran berhasil dihapus." })
     })
   }
 
@@ -134,6 +161,65 @@ export default function SettingsClient({ profile, school, academicYears, userEma
               Simpan
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+
+      {/* Subjects Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><BookOpen className="h-5 w-5" /> Mata Pelajaran</CardTitle>
+          <CardDescription>
+            Kelola mata pelajaran yang akan muncul di Jadwal, Jurnal, Penilaian, dan Bahan Ajar.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <form action={handleAddSubject} className="grid gap-3 sm:grid-cols-[1fr_160px_auto]">
+            <div className="grid gap-2">
+              <Label htmlFor="subjectName">Nama Mata Pelajaran</Label>
+              <Input id="subjectName" name="subjectName" placeholder="Contoh: Matematika" required />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="subjectCode">Kode</Label>
+              <Input id="subjectCode" name="subjectCode" placeholder="MTK" />
+            </div>
+            <div className="flex items-end">
+              <Button type="submit" className="w-full" disabled={isPending}>
+                {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                Tambah
+              </Button>
+            </div>
+          </form>
+
+          <Separator />
+
+          {subjects.length === 0 ? (
+            <div className="rounded-xl border border-dashed py-8 text-center text-sm text-muted-foreground">
+              Belum ada mata pelajaran. Tambahkan mapel pertama di atas.
+            </div>
+          ) : (
+            <div className="grid gap-2">
+              {subjects.map((subject: any) => (
+                <div key={subject.id} className="flex items-center justify-between gap-3 rounded-xl border p-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{subject.name}</p>
+                    <p className="text-xs text-muted-foreground">{subject.code || "Tanpa kode"}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0 text-destructive hover:text-destructive"
+                    disabled={isPending}
+                    onClick={() => handleDeleteSubject(subject.id)}
+                    title="Hapus mata pelajaran"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -18,6 +18,7 @@ export default async function SettingsPage() {
       profile={data.profile}
       school={data.school}
       academicYears={data.academicYears || []}
+      subjects={data.subjects || []}
       userEmail={data.userEmail || ""}
     />
   )

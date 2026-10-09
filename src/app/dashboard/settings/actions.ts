@@ -14,11 +14,18 @@ export async function getProfileData() {
     .eq('id', userData.user.id)
     .single()
 
-  const { data: academicYears } = await supabase
-    .from('academic_years')
-    .select('id, name, semester, is_active')
-    .eq('teacher_id', userData.user.id)
-    .order('created_at', { ascending: false })
+  const [{ data: academicYears }, { data: subjects }] = await Promise.all([
+    supabase
+      .from('academic_years')
+      .select('id, name, semester, is_active')
+      .eq('teacher_id', userData.user.id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('subjects')
+      .select('id, name, code')
+      .eq('teacher_id', userData.user.id)
+      .order('name', { ascending: true }),
+  ])
 
   let school = null
   if (profile?.school_id) {
@@ -34,6 +41,7 @@ export async function getProfileData() {
   return {
     profile: profile || {},
     academicYears: academicYears || [],
+    subjects: subjects || [],
     school: school || {},
     userEmail: userData.user.email || ''
   }
@@ -186,5 +194,81 @@ export async function saveAcademicYear(formData: FormData) {
 
   revalidatePath('/dashboard/settings')
   revalidatePath('/dashboard')
+  return { success: true }
+}
+
+
+export async function addSubject(formData: FormData) {
+  const supabase = await createClient()
+  const { data: userData } = await supabase.auth.getUser()
+  if (!userData?.user) return { error: 'Unauthorized' }
+
+  const name = String(formData.get('subjectName') || '').trim()
+  const code = String(formData.get('subjectCode') || '').trim()
+
+  if (!name) return { error: 'Nama mata pelajaran wajib diisi.' }
+
+  const { data: existing, error: existingError } = await supabase
+    .from('subjects')
+    .select('id')
+    .eq('teacher_id', userData.user.id)
+    .ilike('name', name)
+    .maybeSingle()
+
+  if (existingError) return { error: existingError.message }
+  if (existing) return { error: 'Mata pelajaran dengan nama tersebut sudah ada.' }
+
+  const { error } = await supabase.from('subjects').insert({
+    name,
+    code: code || null,
+    teacher_id: userData.user.id,
+  })
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/dashboard/settings')
+  revalidatePath('/dashboard/schedules')
+  revalidatePath('/dashboard/journals')
+  revalidatePath('/dashboard/assessments')
+  revalidatePath('/dashboard/materials')
+  return { success: true }
+}
+
+export async function deleteSubject(subjectId: string) {
+  const supabase = await createClient()
+  const { data: userData } = await supabase.auth.getUser()
+  if (!userData?.user) return { error: 'Unauthorized' }
+
+  const relatedTables = ['schedules', 'meetings', 'assessments', 'learning_materials'] as const
+
+  for (const table of relatedTables) {
+    const { count, error } = await supabase
+      .from(table)
+      .select('id', { count: 'exact', head: true })
+      .eq('subject_id', subjectId)
+      .eq('teacher_id', userData.user.id)
+
+    if (error) return { error: error.message }
+    if ((count || 0) > 0) {
+      return { error: 'Mata pelajaran sudah dipakai pada data pembelajaran sehingga tidak dapat dihapus.' }
+    }
+  }
+
+  const { data, error } = await supabase
+    .from('subjects')
+    .delete()
+    .eq('id', subjectId)
+    .eq('teacher_id', userData.user.id)
+    .select('id')
+    .maybeSingle()
+
+  if (error) return { error: error.message }
+  if (!data) return { error: 'Mata pelajaran tidak ditemukan.' }
+
+  revalidatePath('/dashboard/settings')
+  revalidatePath('/dashboard/schedules')
+  revalidatePath('/dashboard/journals')
+  revalidatePath('/dashboard/assessments')
+  revalidatePath('/dashboard/materials')
   return { success: true }
 }
