@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Upload, Download, FileText, Search, Trash2, FolderOpen, Loader2, Pencil } from "lucide-react"
+import { Upload, Download, FileText, Search, Trash2, FolderOpen, Loader2, Pencil, Eye } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { format, parseISO } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
@@ -20,7 +20,24 @@ const FILE_ICON_COLORS: Record<string, string> = {
   ".pdf": "text-red-500", ".docx": "text-blue-500",
   ".xlsx": "text-green-500", ".pptx": "text-orange-500",
 }
-function getFileIconColor(name: string) { return FILE_ICON_COLORS[name?.substring(name.lastIndexOf('.'))] || "text-gray-500" }
+function getFileExtension(name: string) {
+  const index = name?.lastIndexOf('.') ?? -1
+  return index >= 0 ? name.slice(index).toLowerCase() : ''
+}
+
+function getFileIconColor(name: string) {
+  return FILE_ICON_COLORS[getFileExtension(name)] || "text-gray-500"
+}
+
+function getPreviewUrl(fileUrl: string, fileName: string) {
+  const extension = getFileExtension(fileName)
+
+  if ([".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx"].includes(extension)) {
+    return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(fileUrl)}`
+  }
+
+  return fileUrl
+}
 
 export default function LearningDevicesClient({ initialDevices }: { initialDevices: any[] }) {
   const [devices, setDevices] = useState<any[]>(initialDevices)
@@ -102,17 +119,28 @@ export default function LearningDevicesClient({ initialDevices }: { initialDevic
               </div>
               <p className="text-xs text-muted-foreground mt-1">{format(parseISO(d.created_at), "d MMM yyyy", { locale: idLocale })}</p>
             </div>
-            <div className="grid w-full grid-cols-[1fr_auto_auto] gap-2 sm:ml-auto sm:flex sm:w-auto sm:shrink-0 sm:gap-2">
+            <div className="grid w-full grid-cols-2 gap-2 sm:ml-auto sm:flex sm:w-auto sm:shrink-0 sm:gap-2">
               {d.file_url && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="justify-center"
-                  render={<a href={d.file_url} target="_blank" rel="noopener noreferrer" />}
-                >
-                  <Download className="mr-1 h-4 w-4" />
-                  <span>Buka</span>
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="justify-center"
+                    render={<a href={getPreviewUrl(d.file_url, d.file_name || "")} target="_blank" rel="noopener noreferrer" />}
+                  >
+                    <Eye className="mr-1 h-4 w-4" />
+                    <span>Lihat</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="justify-center"
+                    render={<a href={d.file_url} target="_blank" rel="noopener noreferrer" />}
+                    title="Download file asli"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </>
               )}
               <Button variant="ghost" size="sm" onClick={() => setEditingDevice(d)} title="Edit">
                 <Pencil className="h-4 w-4" />
