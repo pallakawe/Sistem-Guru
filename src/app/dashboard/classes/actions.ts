@@ -230,3 +230,144 @@ export async function deleteStudent(studentId: string) {
   revalidatePath('/dashboard/classes')
   return { success: true, deactivated: false }
 }
+
+
+type ImportedStudent = {
+  full_name: string
+  nis?: string
+  nisn?: string
+  gender?: string
+  student_number?: number | null
+}
+
+export async function importStudents(classId: string, rows: ImportedStudent[]) {
+  const supabase = await createClient()
+  const { data: userData } = await supabase.auth.getUser()
+  if (!userData?.user) return { error: 'Unauthorized' }
+
+  if (!classId) return { error: 'Kelas wajib dipilih.' }
+  if (!Array.isArray(rows) || rows.length === 0) return { error: 'Tidak ada data siswa untuk diimport.' }
+  if (rows.length > 500) return { error: 'Maksimal 500 siswa dalam satu kali import.' }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('active_academic_year_id')
+    .eq('id', userData.user.id)
+    .single()
+
+  const classQuery = supabase
+    .from('classes')
+    .select('id')
+    .eq('id', classId)
+    .eq('teacher_id', userData.user.id)
+
+  if (profile?.active_academic_year_id) {
+    classQuery.eq('academic_year_id', profile.active_academic_year_id)
+  }
+
+  const { data: ownedClass, error: classError } = await classQuery.maybeSingle()
+  if (classError) return { error: classError.message }
+  if (!ownedClass) return { error: 'Kelas tidak valid atau bukan kelas pada tahun ajaran aktif.' }
+
+  const normalized = rows.map((row, index) => {
+    const fullName = String(row.full_name || '').trim()
+    const nis = String(row.nis || '').trim()
+    const nisn = String(row.nisn || '').trim()
+    const rawGender = String(row.gender || '').trim().toUpperCase()
+    const gender = rawGender === 'LAKI-LAKI' || rawGender === 'LAKI LAKI' || rawGender === 'L' ? 'L'
+      : rawGender === 'PEREMPUAN' || rawGender === 'P' ? 'P'
+      : ''
+    const number = row.student_number === null || row.student_number === undefined || row.student_number === ''
+      ? null
+      : Number(row.student_number)
+
+    return {
+      rowNumber: index + 2,
+      full_name: fullName,
+      nis,
+      nisn,
+      gender,
+      student_number: number,
+    }
+  })
+
+  const invalidRows: string[] = []
+  normalized.forEach((row) => {
+    if (!row.full_name) invalidRows.push(`Baris ${row.rowNumber}: nama siswa kosong.`)
+    if (row.gender && !['L', 'P'].includes(row.gender)) invalidRows.push(`Baris ${row.rowNumber}: jenis kelamin tidak valid.`)
+    if (row.student_number !== null && (!Number.isInteger(row.student_number) || row.student_number < 1)) {
+      invalidRows.push(`Baris ${row.rowNumber}: nomor absen harus bilangan bulat positif.`)
+    }
+  })
+
+  if (invalidRows.length > 0) {
+    return { error: invalidRows.slice(0, 5).join(' ') + (invalidRows.length > 5 ? ' Periksa baris lainnya juga.' : '') }
+  }
+
+  const seenNis = new Set<string>()
+  const seenNisn = new Set<string>()
+  for (const row of normalized) {
+    if (row.nis) {
+      if (seenNis.has(row.nis)) return { error: `NIS ${row.nis} duplikat di file Excel.` }
+      seenNis.add(row.nis)
+    }
+    if (row.nisn) {
+      if (seenNisn.has(row.nisn)) return { error: `NISN ${row.nisn} duplikat di file Excel.` }
+      seenNisn.add(row.nisn)
+    }
+  }
+
+  const { data: existingStudents, error: existingError } = await supabase
+    .from('students')
+    .select('nis, nisn')
+    .eq('class_id', classId)
+    .eq('teacher_id', userData.user.id)
+
+  if (existingError) return { error: existingError.message }
+
+  const existingNis = new Set((existingStudents || []).map((item: any) => item.nis).filter(Boolean))
+  const existingNisn = new Set((existingStudents || []).map((item: any) => item.nisn).filter(Boolean))
+
+  const skipped: string[] = []
+  const insertRows = normalized.filter((row) => {
+    const duplicateNis = row.nis && existingNis.has(row.nis)
+    const duplicateNisn = row.nisn && existingNisn.has(row.nisn)
+    if (duplicateNis || duplicateNisn) {
+      skipped.push(row.full_name)
+      return false
+    }
+    return true
+  })
+
+  if (insertRows.length === 0) {
+    return {
+      success: true,
+      imported: 0,
+      skipped: skipped.length,
+      message: 'Tidak ada siswa baru. Semua data terdeteksi sebagai duplikat NIS/NISN.',
+    }
+  }
+
+  const { error: insertError } = await supabase.from('students').insert(
+    insertRows.map((row) => ({
+      class_id: classId,
+      full_name: row.full_name,
+      nis: row.nis || null,
+      nisn: row.nisn || null,
+      gender: row.gender || null,
+      student_number: row.student_number,
+      teacher_id: userData.user.id,
+      is_active: true,
+    }))
+  )
+
+  if (insertError) return { error: insertError.message }
+
+  revalidatePath('/dashboard/classes')
+  return {
+    success: true,
+    imported: insertRows.length,
+    skipped: skipped.length,
+    message: `${insertRows.length} siswa berhasil diimport${skipped.length ? `, ${skipped.length} data duplikat dilewati` : ''}.`,
+  }
+}

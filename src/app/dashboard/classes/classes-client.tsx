@@ -1,17 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
-import { useState, useTransition } from "react"
+import { useRef, useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Users, Loader2, Pencil, Trash2, ChevronLeft, FileSpreadsheet, FileDown } from "lucide-react"
+import { Plus, Users, Loader2, Pencil, Trash2, ChevronLeft, FileSpreadsheet, FileDown, Upload, Download } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { addClass, addStudent, getStudentsByClass, updateStudent, updateClass, deleteClass, deleteStudent } from "./actions"
+import { addClass, addStudent, getStudentsByClass, updateStudent, updateClass, deleteClass, deleteStudent, importStudents } from "./actions"
 import { useToast } from "@/hooks/use-toast"
 import { exportRowsToExcel, exportRowsToPdf } from "@/lib/export-data"
 
@@ -29,6 +29,11 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
   const [openEditStudent, setOpenEditStudent] = useState(false)
   const [editingStudent, setEditingStudent] = useState<any | null>(null)
   const [studentToDelete, setStudentToDelete] = useState<any | null>(null)
+  const [openImport, setOpenImport] = useState(false)
+  const [importRows, setImportRows] = useState<any[]>([])
+  const [importFileName, setImportFileName] = useState("")
+  const [importError, setImportError] = useState("")
+  const importInputRef = useRef<HTMLInputElement>(null)
   const [isPending, startTransition] = useTransition()
   const { toast } = useToast()
 
@@ -114,6 +119,98 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
     })
   }
 
+  async function handleImportFile(file: File | null) {
+    if (!file) return
+    setImportError("")
+    setImportRows([])
+    setImportFileName(file.name)
+
+    try {
+      const XLSX = await import("xlsx")
+      const buffer = await file.arrayBuffer()
+      const workbook = XLSX.read(buffer, { type: "array" })
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+      const rawRows = XLSX.utils.sheet_to_json<Record<string, any>>(firstSheet, { defval: "" })
+
+      const normalizeKey = (value: string) =>
+        value.toLowerCase().replace(/[._-]/g, " ").replace(/\s+/g, " ").trim()
+
+      const getValue = (row: Record<string, any>, aliases: string[]) => {
+        const entries = Object.entries(row)
+        const found = entries.find(([key]) => aliases.includes(normalizeKey(key)))
+        return found?.[1] ?? ""
+      }
+
+      const parsed = rawRows.map((row, index) => ({
+        rowNumber: index + 2,
+        full_name: String(getValue(row, ["nama lengkap", "nama siswa", "nama"])).trim(),
+        nis: String(getValue(row, ["nis"])).trim(),
+        nisn: String(getValue(row, ["nisn"])).trim(),
+        gender: String(getValue(row, ["l/p", "lp", "jenis kelamin", "gender"])).trim(),
+        student_number: getValue(row, ["no absen", "nomor absen", "no. absen", "absen"]) || "",
+      })).filter(row => row.full_name || row.nis || row.nisn)
+
+      if (parsed.length === 0) {
+        setImportError("Tidak ada data yang terbaca. Pastikan baris pertama berisi judul kolom.")
+        return
+      }
+
+      if (parsed.length > 500) {
+        setImportError("Maksimal 500 siswa dalam satu file.")
+        return
+      }
+
+      setImportRows(parsed)
+    } catch {
+      setImportError("File Excel tidak dapat dibaca. Gunakan format .xlsx atau .xls.")
+    }
+  }
+
+  async function downloadStudentTemplate() {
+    const XLSX = await import("xlsx")
+    const rows = [
+      ["Nama Lengkap", "NIS", "NISN", "L/P", "No. Absen"],
+      ["Contoh Siswa", "12345", "0012345678", "L", 1],
+    ]
+    const sheet = XLSX.utils.aoa_to_sheet(rows)
+    sheet["!cols"] = [{ wch: 28 }, { wch: 16 }, { wch: 18 }, { wch: 12 }, { wch: 12 }]
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, sheet, "Siswa")
+    XLSX.writeFile(workbook, "template-import-siswa.xlsx")
+  }
+
+  function handleImportStudents() {
+    if (!selectedClass || importRows.length === 0) return
+    startTransition(async () => {
+      const result = await importStudents(
+        selectedClass.id,
+        importRows.map((row) => ({
+          full_name: row.full_name,
+          nis: row.nis,
+          nisn: row.nisn,
+          gender: row.gender,
+          student_number: row.student_number === "" ? null : Number(row.student_number),
+        }))
+      )
+
+      if (result.error) {
+        setImportError(result.error)
+        return
+      }
+
+      const res = await getStudentsByClass(selectedClass.id)
+      if (!res.error) setStudents(res.data || [])
+      setOpenImport(false)
+      setImportRows([])
+      setImportFileName("")
+      setImportError("")
+      toast({
+        title: "Import selesai",
+        description: result.message || `${result.imported || 0} siswa berhasil diimport.`,
+      })
+    })
+  }
+
   function handleDeleteStudent() {
     if (!studentToDelete || !selectedClass) return
     startTransition(async () => {
@@ -182,6 +279,9 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                 </Button>
               </>
             )}
+            <Button variant="outline" onClick={() => setOpenImport(true)}>
+              <Upload className="mr-2 h-4 w-4" /> Import Excel
+            </Button>
             <Button className="col-span-2 sm:col-span-1" onClick={() => setOpenAddStudent(true)}>
               <Plus className="mr-2 h-4 w-4" /> Tambah Siswa
             </Button>
@@ -271,6 +371,108 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
           )}
         </div>
       )}
+
+
+      {/* Import Students Dialog */}
+      <Dialog open={openImport} onOpenChange={(open) => {
+        setOpenImport(open)
+        if (!open && !isPending) {
+          setImportRows([])
+          setImportFileName("")
+          setImportError("")
+        }
+      }}>
+        <DialogContent className="sm:max-w-[680px]">
+          <DialogHeader>
+            <DialogTitle>Import Siswa dari Excel</DialogTitle>
+            <DialogDescription>
+              Import banyak siswa sekaligus ke {selectedClass?.name}. Maksimal 500 siswa per file.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-2">
+            <div className="rounded-xl border bg-muted/30 p-4 text-sm">
+              <p className="font-semibold">Format kolom Excel</p>
+              <p className="mt-1 text-muted-foreground">
+                Nama Lengkap wajib. Kolom lain opsional: NIS, NISN, L/P, dan No. Absen.
+              </p>
+              <Button type="button" variant="outline" size="sm" className="mt-3" onClick={downloadStudentTemplate}>
+                <Download className="mr-2 h-4 w-4" /> Download Template Excel
+              </Button>
+            </div>
+
+            <div
+              className="cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-colors hover:bg-muted/40"
+              onClick={() => importInputRef.current?.click()}
+            >
+              <FileSpreadsheet className="mx-auto mb-2 h-9 w-9 text-primary" />
+              <p className="font-medium">{importFileName || "Klik untuk pilih file Excel"}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Format .xlsx atau .xls</p>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={(event) => handleImportFile(event.target.files?.[0] || null)}
+              />
+            </div>
+
+            {importError && (
+              <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {importError}
+              </div>
+            )}
+
+            {importRows.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold">Preview data</p>
+                  <Badge variant="secondary">{importRows.length} siswa</Badge>
+                </div>
+                <div className="max-h-72 overflow-auto rounded-xl border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Baris</TableHead>
+                        <TableHead>Nama</TableHead>
+                        <TableHead>NIS</TableHead>
+                        <TableHead>NISN</TableHead>
+                        <TableHead>L/P</TableHead>
+                        <TableHead>No. Absen</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {importRows.slice(0, 50).map((row) => (
+                        <TableRow key={row.rowNumber}>
+                          <TableCell>{row.rowNumber}</TableCell>
+                          <TableCell className="font-medium">{row.full_name || "-"}</TableCell>
+                          <TableCell>{row.nis || "-"}</TableCell>
+                          <TableCell>{row.nisn || "-"}</TableCell>
+                          <TableCell>{row.gender || "-"}</TableCell>
+                          <TableCell>{row.student_number || "-"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                {importRows.length > 50 && (
+                  <p className="text-xs text-muted-foreground">Preview menampilkan 50 baris pertama dari {importRows.length} siswa.</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={isPending} onClick={() => setOpenImport(false)}>
+              Batal
+            </Button>
+            <Button type="button" disabled={isPending || importRows.length === 0} onClick={handleImportStudents}>
+              {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+              Import {importRows.length > 0 ? `${importRows.length} Siswa` : "Siswa"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Class Dialog */}
       <Dialog open={openAddClass} onOpenChange={setOpenAddClass}>
