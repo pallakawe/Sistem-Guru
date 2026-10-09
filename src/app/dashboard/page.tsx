@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, BookOpen, GraduationCap, CalendarDays, FileText, Library } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
+import { DashboardStats } from "./dashboard-stats"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -48,10 +49,107 @@ export default async function DashboardPage() {
 
   if (activeYearId) scheduleQuery.eq("academic_year_id", activeYearId)
 
-  const [classesRes, devicesRes, schedulesRes] = await Promise.all([
+  const localNow = new Date(Date.now() + 8 * 60 * 60 * 1000)
+  const localDay = localNow.getUTCDay() || 7
+  const weekStart = new Date(localNow)
+  weekStart.setUTCDate(localNow.getUTCDate() - localDay + 1)
+  const weekEnd = new Date(weekStart)
+  weekEnd.setUTCDate(weekStart.getUTCDate() + 6)
+  const dateKey = (date: Date) => date.toISOString().slice(0, 10)
+
+  const journalCountQuery = supabase
+    .from("teaching_journals")
+    .select("id, meetings!inner(academic_year_id)", { count: "exact", head: true })
+    .eq("teacher_id", teacherId)
+
+  const meetingWeekQuery = supabase
+    .from("meetings")
+    .select("id, date, attendance(id)")
+    .eq("teacher_id", teacherId)
+    .gte("date", dateKey(weekStart))
+    .lte("date", dateKey(weekEnd))
+    .order("date")
+
+  const assessmentIdsQuery = supabase
+    .from("assessments")
+    .select("id")
+    .eq("teacher_id", teacherId)
+
+  if (activeYearId) {
+    journalCountQuery.eq("meetings.academic_year_id", activeYearId)
+    meetingWeekQuery.eq("academic_year_id", activeYearId)
+    assessmentIdsQuery.eq("academic_year_id", activeYearId)
+  }
+
+  const recentJournalsQuery = supabase
+    .from("teaching_journals")
+    .select("id, topic, created_at, meetings(classes(name))")
+    .eq("teacher_id", teacherId)
+    .order("created_at", { ascending: false })
+    .limit(4)
+
+  const recentAssessmentsQuery = supabase
+    .from("assessments")
+    .select("id, title, created_at, classes(name)")
+    .eq("teacher_id", teacherId)
+    .order("created_at", { ascending: false })
+    .limit(4)
+
+  const recentDocumentsQuery = supabase
+    .from("documents")
+    .select("id, title, created_at")
+    .eq("teacher_id", teacherId)
+    .order("created_at", { ascending: false })
+    .limit(4)
+
+  const recentMaterialsQuery = supabase
+    .from("learning_materials")
+    .select("id, title, created_at, classes(name)")
+    .eq("teacher_id", teacherId)
+    .order("created_at", { ascending: false })
+    .limit(4)
+
+  const [
+    classesRes,
+    devicesRes,
+    schedulesRes,
+    journalCountRes,
+    weekMeetingsRes,
+    assessmentIdsRes,
+    recentJournalsRes,
+    recentAssessmentsRes,
+    recentDocumentsRes,
+    recentMaterialsRes,
+  ] = await Promise.all([
     classesQuery,
     devicesQuery,
     scheduleQuery,
+    journalCountQuery,
+    meetingWeekQuery,
+    assessmentIdsQuery,
+    recentJournalsQuery,
+    recentAssessmentsQuery,
+    recentDocumentsQuery,
+    recentMaterialsQuery,
+  ])
+
+  const weekMeetings = weekMeetingsRes.data || []
+  const attendanceToDate = new Map<string, string>()
+  weekMeetings.forEach((meeting: any) => {
+    ;(meeting.attendance || []).forEach((attendance: any) => {
+      attendanceToDate.set(attendance.id, meeting.date)
+    })
+  })
+  const attendanceIds = Array.from(attendanceToDate.keys())
+  const assessmentIds = (assessmentIdsRes.data || []).map((item: any) => item.id)
+
+  const [attendanceRecordsRes, scoresRes] = await Promise.all([
+    attendanceIds.length
+      ? supabase.from("attendance_records").select("attendance_id, status").in("attendance_id", attendanceIds)
+      : Promise.resolve({ data: [] as any[] }),
+    assessmentIds.length
+      ? supabase.from("assessment_scores").select("score").in("assessment_id", assessmentIds)
+      : Promise.resolve({ data: [] as any[] }),
   ])
 
   const classes = classesRes.data || []
@@ -59,6 +157,71 @@ export default async function DashboardPage() {
   const studentCount = classes.reduce((sum, item: any) => sum + ((item.students as any[])?.[0]?.count || 0), 0)
   const schedules = schedulesRes.data || []
   const teacherName = profile?.full_name || "Guru"
+
+  const dayLabels = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"]
+  const attendanceStats = dayLabels.map((day, index) => {
+    const date = new Date(weekStart)
+    date.setUTCDate(weekStart.getUTCDate() + index)
+    const key = dateKey(date)
+    const result = { day, H: 0, S: 0, I: 0, A: 0 }
+    ;(attendanceRecordsRes.data || []).forEach((record: any) => {
+      if (attendanceToDate.get(record.attendance_id) === key && record.status in result) {
+        result[record.status as "H" | "S" | "I" | "A"] += 1
+      }
+    })
+    return result
+  })
+
+  const scoreBuckets = [
+    { range: "<60", count: 0 },
+    { range: "60–69", count: 0 },
+    { range: "70–79", count: 0 },
+    { range: "80–89", count: 0 },
+    { range: "90–100", count: 0 },
+  ]
+  ;(scoresRes.data || []).forEach((item: any) => {
+    const score = Number(item.score)
+    if (!Number.isFinite(score)) return
+    if (score < 60) scoreBuckets[0].count += 1
+    else if (score < 70) scoreBuckets[1].count += 1
+    else if (score < 80) scoreBuckets[2].count += 1
+    else if (score < 90) scoreBuckets[3].count += 1
+    else scoreBuckets[4].count += 1
+  })
+
+  const recentActivities = [
+    ...(recentJournalsRes.data || []).map((item: any) => ({
+      id: `journal-${item.id}`,
+      type: "Jurnal",
+      title: item.topic || "Jurnal mengajar",
+      detail: item.meetings?.classes?.name || "Kegiatan pembelajaran",
+      createdAt: item.created_at,
+    })),
+    ...(recentAssessmentsRes.data || []).map((item: any) => ({
+      id: `assessment-${item.id}`,
+      type: "Penilaian",
+      title: item.title || "Komponen penilaian",
+      detail: item.classes?.name || "Penilaian kelas",
+      createdAt: item.created_at,
+    })),
+    ...(recentDocumentsRes.data || []).map((item: any) => ({
+      id: `document-${item.id}`,
+      type: "Dokumen",
+      title: item.title || "Dokumen",
+      detail: "Dokumen administrasi",
+      createdAt: item.created_at,
+    })),
+    ...(recentMaterialsRes.data || []).map((item: any) => ({
+      id: `material-${item.id}`,
+      type: "Bahan Ajar",
+      title: item.title || "Bahan ajar",
+      detail: item.classes?.name || "Materi pembelajaran",
+      createdAt: item.created_at,
+    })),
+  ]
+    .filter((item) => item.createdAt)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 6)
 
   return (
     <div className="flex flex-col gap-4 sm:gap-6">
@@ -104,6 +267,13 @@ export default async function DashboardPage() {
           <CardContent><div className="text-2xl font-bold">{devicesRes.count || 0}</div></CardContent>
         </Card>
       </div>
+
+      <DashboardStats
+        attendance={attendanceStats}
+        journalCount={journalCountRes.count || 0}
+        scoreDistribution={scoreBuckets}
+        recentActivities={recentActivities}
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="min-w-0 md:col-span-2 lg:col-span-4">
