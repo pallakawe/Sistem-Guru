@@ -277,7 +277,7 @@ export async function importStudents(classId: string, rows: ImportedStudent[]) {
     const gender = rawGender === 'LAKI-LAKI' || rawGender === 'LAKI LAKI' || rawGender === 'L' ? 'L'
       : rawGender === 'PEREMPUAN' || rawGender === 'P' ? 'P'
       : ''
-    const number = row.student_number === null || row.student_number === undefined || row.student_number === ''
+    const number = row.student_number === null || row.student_number === undefined
       ? null
       : Number(row.student_number)
 
