@@ -62,13 +62,13 @@ export default async function DashboardPage() {
     .select("id, meetings!inner(academic_year_id)", { count: "exact", head: true })
     .eq("teacher_id", teacherId)
 
-  const meetingWeekQuery = supabase
-    .from("meetings")
-    .select("id, date, attendance(id)")
+  const dailyAttendanceWeekQuery = supabase
+    .from("daily_attendance")
+    .select("id, attendance_date")
     .eq("teacher_id", teacherId)
-    .gte("date", dateKey(weekStart))
-    .lte("date", dateKey(weekEnd))
-    .order("date")
+    .gte("attendance_date", dateKey(weekStart))
+    .lte("attendance_date", dateKey(weekEnd))
+    .order("attendance_date")
 
   const assessmentIdsQuery = supabase
     .from("assessments")
@@ -77,7 +77,7 @@ export default async function DashboardPage() {
 
   if (activeYearId) {
     journalCountQuery.eq("meetings.academic_year_id", activeYearId)
-    meetingWeekQuery.eq("academic_year_id", activeYearId)
+    dailyAttendanceWeekQuery.eq("academic_year_id", activeYearId)
     assessmentIdsQuery.eq("academic_year_id", activeYearId)
   }
 
@@ -114,7 +114,7 @@ export default async function DashboardPage() {
     devicesRes,
     schedulesRes,
     journalCountRes,
-    weekMeetingsRes,
+    weekAttendanceRes,
     assessmentIdsRes,
     recentJournalsRes,
     recentAssessmentsRes,
@@ -125,7 +125,7 @@ export default async function DashboardPage() {
     devicesQuery,
     scheduleQuery,
     journalCountQuery,
-    meetingWeekQuery,
+    dailyAttendanceWeekQuery,
     assessmentIdsQuery,
     recentJournalsQuery,
     recentAssessmentsQuery,
@@ -133,19 +133,17 @@ export default async function DashboardPage() {
     recentMaterialsQuery,
   ])
 
-  const weekMeetings = weekMeetingsRes.data || []
+  const weekAttendance = weekAttendanceRes.data || []
   const attendanceToDate = new Map<string, string>()
-  weekMeetings.forEach((meeting: any) => {
-    ;(meeting.attendance || []).forEach((attendance: any) => {
-      attendanceToDate.set(attendance.id, meeting.date)
-    })
+  weekAttendance.forEach((attendance: any) => {
+    attendanceToDate.set(attendance.id, attendance.attendance_date)
   })
   const attendanceIds = Array.from(attendanceToDate.keys())
   const assessmentIds = (assessmentIdsRes.data || []).map((item: any) => item.id)
 
   const [attendanceRecordsRes, scoresRes] = await Promise.all([
     attendanceIds.length
-      ? supabase.from("attendance_records").select("attendance_id, status").in("attendance_id", attendanceIds)
+      ? supabase.from("daily_attendance_records").select("daily_attendance_id, status").in("daily_attendance_id", attendanceIds)
       : Promise.resolve({ data: [] as any[] }),
     assessmentIds.length
       ? supabase.from("assessment_scores").select("score").in("assessment_id", assessmentIds)
@@ -165,7 +163,7 @@ export default async function DashboardPage() {
     const key = dateKey(date)
     const result = { day, H: 0, S: 0, I: 0, A: 0 }
     ;(attendanceRecordsRes.data || []).forEach((record: any) => {
-      if (attendanceToDate.get(record.attendance_id) === key && record.status in result) {
+      if (attendanceToDate.get(record.daily_attendance_id) === key && record.status in result) {
         result[record.status as "H" | "S" | "I" | "A"] += 1
       }
     })

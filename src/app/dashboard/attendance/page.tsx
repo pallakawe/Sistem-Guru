@@ -1,21 +1,19 @@
-import { getMeetings } from "./actions"
+import { getAttendanceSetup } from "./actions"
 import AttendanceClient from "./attendance-client"
 
 export default async function AttendancePage() {
-  const { data: meetings, error } = await getMeetings()
+  const data = await getAttendanceSetup()
 
-  if (error) {
+  if (data.error) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-3xl font-bold tracking-tight">Absensi Cepat</h1>
-        <div className="bg-red-50 text-red-500 p-4 rounded-lg">
-          Gagal memuat data pertemuan: {error}
+        <h1 className="text-3xl font-bold tracking-tight">Absensi Siswa</h1>
+        <div className="rounded-lg bg-red-50 p-4 text-red-500">
+          Gagal memuat data absensi: {data.error}
         </div>
       </div>
     )
   }
 
-  return (
-    <AttendanceClient meetings={meetings || []} />
-  )
+  return <AttendanceClient classes={data.classes || []} />
 }

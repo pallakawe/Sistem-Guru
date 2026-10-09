@@ -333,3 +333,30 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+
+-- Table: daily_attendance (Absensi Harian, terpisah dari Jurnal/Pertemuan)
+create table if not exists daily_attendance (
+  id uuid default uuid_generate_v4() primary key,
+  class_id uuid references classes(id) on delete cascade not null,
+  attendance_date date not null,
+  academic_year_id uuid references academic_years(id) on delete cascade not null,
+  teacher_id uuid references profiles(id) on delete cascade not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique (teacher_id, class_id, attendance_date)
+);
+alter table daily_attendance enable row level security;
+
+-- Table: daily_attendance_records
+create table if not exists daily_attendance_records (
+  id uuid default uuid_generate_v4() primary key,
+  daily_attendance_id uuid references daily_attendance(id) on delete cascade not null,
+  student_id uuid references students(id) on delete cascade not null,
+  status text not null check (status in ('H','S','I','A')),
+  notes text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique (daily_attendance_id, student_id)
+);
+alter table daily_attendance_records enable row level security;

@@ -100,16 +100,7 @@ export async function createJournal(formData: FormData) {
     return { error: journalError.message }
   }
 
-  const { error: attendanceError } = await supabase.from('attendance').insert({
-    meeting_id: meeting.id, teacher_id: userData.user.id
-  })
-  if (attendanceError) {
-    await supabase.from('meetings').delete().eq('id', meeting.id).eq('teacher_id', userData.user.id)
-    return { error: attendanceError.message }
-  }
-
   revalidatePath('/dashboard/journals')
-  revalidatePath('/dashboard/attendance')
   return { success: true }
 }
 
@@ -179,7 +170,6 @@ export async function updateJournal(journalId: string, formData: FormData) {
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard/journals')
-  revalidatePath('/dashboard/attendance')
   return { success: true }
 }
 
@@ -206,7 +196,6 @@ export async function deleteJournal(journalId: string) {
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard/journals')
-  revalidatePath('/dashboard/attendance')
   revalidatePath('/dashboard/materials')
   return { success: true }
 }
