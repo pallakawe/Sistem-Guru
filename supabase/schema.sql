@@ -222,6 +222,7 @@ create table if not exists learning_devices (
   category text not null, -- 'Modul Ajar', 'ATP', 'CP', etc.
   file_url text,
   file_name text,
+  subject_id uuid references subjects(id) on delete restrict,
   academic_year_id uuid references academic_years(id) on delete cascade not null,
   teacher_id uuid references profiles(id) on delete cascade not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null

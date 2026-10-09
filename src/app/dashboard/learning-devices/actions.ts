@@ -17,15 +17,18 @@ export async function getLearningDevices() {
 
   const { data: profile } = await supabase.from('profiles').select('active_academic_year_id').eq('id', userData.user.id).single()
   const query = supabase.from('learning_devices')
-    .select('id, title, category, file_url, file_name, created_at')
+    .select('id, title, category, file_url, file_name, created_at, subject_id, subjects(id, name)')
     .eq('teacher_id', userData.user.id)
     .order('created_at', { ascending: false })
 
   if (profile?.active_academic_year_id) query.eq('academic_year_id', profile.active_academic_year_id)
 
-  const { data, error } = await query
-  if (error) return { error: error.message }
-  return { data: data || [] }
+  const [{ data, error }, { data: subjects, error: subjectsError }] = await Promise.all([
+    query,
+    supabase.from('subjects').select('id, name').eq('teacher_id', userData.user.id).order('name'),
+  ])
+  if (error || subjectsError) return { error: (error || subjectsError)?.message || 'Gagal memuat data.' }
+  return { data: data || [], subjects: subjects || [] }
 }
 
 export async function createLearningDevice(formData: FormData) {
@@ -38,9 +41,19 @@ export async function createLearningDevice(formData: FormData) {
 
   const title = String(formData.get('title') || '').trim()
   const category = String(formData.get('category') || '').trim()
+  const subjectId = String(formData.get('subjectId') || '').trim()
   const file = formData.get('file')
 
-  if (!title || !category) return { error: 'Judul dan kategori wajib diisi.' }
+  if (!title || !category || !subjectId) return { error: 'Judul, mata pelajaran, dan kategori wajib diisi.' }
+
+  const { data: ownedSubject, error: subjectError } = await supabase
+    .from('subjects')
+    .select('id')
+    .eq('id', subjectId)
+    .eq('teacher_id', userData.user.id)
+    .maybeSingle()
+  if (subjectError) return { error: subjectError.message }
+  if (!ownedSubject) return { error: 'Mata pelajaran tidak valid.' }
   if (!(file instanceof File) || file.size === 0) return { error: 'File perangkat pembelajaran wajib dipilih.' }
 
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-')
@@ -50,7 +63,7 @@ export async function createLearningDevice(formData: FormData) {
 
   const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath)
   const { error } = await supabase.from('learning_devices').insert({
-    title, category, file_url: urlData.publicUrl, file_name: file.name,
+    title, category, subject_id: subjectId, file_url: urlData.publicUrl, file_name: file.name,
     academic_year_id: profile.active_academic_year_id, teacher_id: userData.user.id
   })
 
@@ -95,10 +108,20 @@ export async function updateLearningDevice(id: string, formData: FormData) {
 
   const title = String(formData.get('title') || '').trim()
   const category = String(formData.get('category') || '').trim()
-  if (!title || !category) return { error: 'Judul dan kategori wajib diisi.' }
+  const subjectId = String(formData.get('subjectId') || '').trim()
+  if (!title || !category || !subjectId) return { error: 'Judul, mata pelajaran, dan kategori wajib diisi.' }
+
+  const { data: ownedSubject, error: subjectError } = await supabase
+    .from('subjects')
+    .select('id')
+    .eq('id', subjectId)
+    .eq('teacher_id', userData.user.id)
+    .maybeSingle()
+  if (subjectError) return { error: subjectError.message }
+  if (!ownedSubject) return { error: 'Mata pelajaran tidak valid.' }
 
   const { data, error } = await supabase.from('learning_devices')
-    .update({ title, category })
+    .update({ title, category, subject_id: subjectId })
     .eq('id', id)
     .eq('teacher_id', userData.user.id)
     .select('id')

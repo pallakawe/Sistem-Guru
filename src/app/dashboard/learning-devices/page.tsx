@@ -2,7 +2,7 @@ import { getLearningDevices } from "./actions"
 import LearningDevicesClient from "./learning-devices-client"
 
 export default async function LearningDevicesPage() {
-  const { data: devices, error } = await getLearningDevices()
+  const { data: devices, subjects, error } = await getLearningDevices()
 
   if (error) {
     return (
@@ -13,5 +13,5 @@ export default async function LearningDevicesPage() {
     )
   }
 
-  return <LearningDevicesClient initialDevices={devices || []} />
+  return <LearningDevicesClient initialDevices={devices || []} subjects={subjects || []} />
 }

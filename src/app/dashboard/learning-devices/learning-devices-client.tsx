@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
-import { useState, useTransition, useRef } from "react"
+import { useMemo, useState, useTransition, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -39,10 +39,11 @@ function getPreviewUrl(fileUrl: string, fileName: string) {
   return fileUrl
 }
 
-export default function LearningDevicesClient({ initialDevices }: { initialDevices: any[] }) {
+export default function LearningDevicesClient({ initialDevices, subjects }: { initialDevices: any[], subjects: any[] }) {
   const [devices, setDevices] = useState<any[]>(initialDevices)
   const [searchQuery, setSearchQuery] = useState("")
   const [open, setOpen] = useState(false)
+  const [activeSubjectId, setActiveSubjectId] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState("all")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [editingDevice, setEditingDevice] = useState<any | null>(null)
@@ -91,11 +92,20 @@ export default function LearningDevicesClient({ initialDevices }: { initialDevic
     })
   }
 
-  const filtered = (cat?: string) => devices.filter(d =>
-    (d.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     d.category.toLowerCase().includes(searchQuery.toLowerCase())) &&
-    (!cat || d.category === cat)
+  const subjectFolders = useMemo(() => subjects.map((subject) => ({
+    ...subject,
+    count: devices.filter((device) => device.subject_id === subject.id).length,
+  })), [subjects, devices])
+
+  const visibleDevices = devices.filter((device) =>
+    (!activeSubjectId || device.subject_id === activeSubjectId) &&
+    (device.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     device.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     (device.subjects?.name || "").toLowerCase().includes(searchQuery.toLowerCase()))
   )
+
+  const filtered = (cat?: string) => visibleDevices.filter(d => !cat || d.category === cat)
+  const activeSubject = subjects.find((subject) => subject.id === activeSubjectId)
 
   const DeviceList = ({ items }: { items: any[] }) => items.length === 0 ? (
     <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-lg">
@@ -177,6 +187,46 @@ export default function LearningDevicesClient({ initialDevices }: { initialDevic
       </div>
 
       <div className="space-y-4">
+        {!activeSubjectId ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {subjectFolders.map((subject) => (
+              <button
+                key={subject.id}
+                type="button"
+                onClick={() => { setActiveSubjectId(subject.id); setActiveCategory("all") }}
+                className="group rounded-2xl border bg-card p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md"
+              >
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+                  <FolderOpen className="h-6 w-6" />
+                </div>
+                <div className="flex items-end justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="truncate font-semibold">{subject.name}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{subject.count} dokumen</p>
+                  </div>
+                  <span className="text-sm font-medium text-primary opacity-0 transition group-hover:opacity-100">Buka →</span>
+                </div>
+              </button>
+            ))}
+            {subjects.length === 0 && (
+              <div className="col-span-full rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+                Belum ada mata pelajaran. Tambahkan mapel di Pengaturan terlebih dahulu.
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-col gap-3 rounded-2xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <Button type="button" variant="outline" size="sm" onClick={() => setActiveSubjectId(null)}>← Kembali</Button>
+                <div>
+                  <p className="text-xs text-muted-foreground">Folder Mata Pelajaran</p>
+                  <h2 className="font-semibold">{activeSubject?.name}</h2>
+                </div>
+              </div>
+              <Badge variant="secondary">{visibleDevices.length} dokumen</Badge>
+            </div>
+
         <div className="w-full overflow-x-auto pb-1">
           <div className="flex min-w-max items-center gap-1 rounded-xl bg-muted/70 p-1">
             <Button
@@ -208,6 +258,8 @@ export default function LearningDevicesClient({ initialDevices }: { initialDevic
         </div>
 
         <DeviceList items={activeCategory === "all" ? filtered() : filtered(activeCategory)} />
+          </>
+        )}
       </div>
 
       <Dialog open={!!editingDevice} onOpenChange={(value) => !value && setEditingDevice(null)}>
@@ -217,6 +269,13 @@ export default function LearningDevicesClient({ initialDevices }: { initialDevic
             {editingDevice && (
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2"><Label>Judul Dokumen</Label><Input name="title" defaultValue={editingDevice.title} required /></div>
+                <div className="grid gap-2">
+                  <Label>Mata Pelajaran</Label>
+                  <Select name="subjectId" defaultValue={editingDevice.subject_id || ""} items={subjects.map(x => ({ value: x.id, label: x.name }))} required>
+                    <SelectTrigger><SelectValue placeholder="Pilih Mapel" /></SelectTrigger>
+                    <SelectContent>{subjects.map(x => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
                 <div className="grid gap-2">
                   <Label>Kategori</Label>
                   <Select name="category" defaultValue={editingDevice.category} items={DEVICE_CATEGORIES.map(x => ({ value: x, label: x }))}>
@@ -243,6 +302,13 @@ export default function LearningDevicesClient({ initialDevices }: { initialDevic
               <div className="grid gap-2">
                 <Label htmlFor="title">Judul Dokumen</Label>
                 <Input id="title" name="title" placeholder="Contoh: Modul Ajar Kelas 4 Semester 1" required />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="subjectId">Mata Pelajaran</Label>
+                <Select name="subjectId" defaultValue={activeSubjectId || undefined} items={subjects.map(x => ({ value: x.id, label: x.name }))} required>
+                  <SelectTrigger id="subjectId"><SelectValue placeholder="Pilih Mata Pelajaran" /></SelectTrigger>
+                  <SelectContent>{subjects.map(x => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}</SelectContent>
+                </Select>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="category">Kategori</Label>
