@@ -89,8 +89,8 @@ export default function LearningDevicesClient({ initialDevices }: { initialDevic
   ) : (
     <div className="grid gap-3">
       {items.map(d => (
-        <Card key={d.id} className="hover:shadow-sm transition-shadow">
-          <CardContent className="flex flex-wrap items-start gap-3 p-3 sm:flex-nowrap sm:items-center sm:gap-4 sm:p-4">
+        <Card key={d.id} className="transition-shadow hover:shadow-sm">
+          <CardContent className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:gap-4 sm:p-4">
             <div className={`flex-shrink-0 ${getFileIconColor(d.file_name || '')}`}>
               <FileText className="h-10 w-10" />
             </div>
@@ -98,22 +98,32 @@ export default function LearningDevicesClient({ initialDevices }: { initialDevic
               <h4 className="font-medium truncate">{d.title}</h4>
               <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2">
                 <Badge variant="secondary" className="text-xs">{d.category}</Badge>
-                {d.file_name && <span className="text-xs text-muted-foreground">{d.file_name}</span>}
+                {d.file_name && <span className="max-w-full truncate text-xs text-muted-foreground">{d.file_name}</span>}
               </div>
               <p className="text-xs text-muted-foreground mt-1">{format(parseISO(d.created_at), "d MMM yyyy", { locale: idLocale })}</p>
             </div>
-            <div className="ml-auto flex shrink-0 gap-1 sm:gap-2">
+            <div className="grid w-full grid-cols-[1fr_auto_auto] gap-2 sm:ml-auto sm:flex sm:w-auto sm:shrink-0 sm:gap-2">
               {d.file_url && (
                 <Button
                   variant="outline"
                   size="sm"
+                  className="justify-center"
                   render={<a href={d.file_url} target="_blank" rel="noopener noreferrer" />}
                 >
-                  <Download className="h-4 w-4" />
+                  <Download className="mr-1 h-4 w-4" />
+                  <span>Buka</span>
                 </Button>
               )}
-              <Button variant="ghost" size="sm" onClick={() => setEditingDevice(d)}><Pencil className="h-4 w-4" /></Button>
-              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDelete(d.id)}>
+              <Button variant="ghost" size="sm" onClick={() => setEditingDevice(d)} title="Edit">
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={() => handleDelete(d.id)}
+                title="Hapus"
+              >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
@@ -139,16 +149,31 @@ export default function LearningDevicesClient({ initialDevices }: { initialDevic
       </div>
 
       <Tabs defaultValue="all">
-        <TabsList className="w-full justify-start gap-1 overflow-x-auto whitespace-nowrap">
-          <TabsTrigger value="all">Semua ({devices.length})</TabsTrigger>
-          {DEVICE_CATEGORIES.map(c => {
-            const count = devices.filter(d => d.category === c).length
-            return count > 0 ? <TabsTrigger key={c} value={c}>{c} ({count})</TabsTrigger> : null
-          })}
-        </TabsList>
-        <TabsContent value="all" className="mt-6"><DeviceList items={filtered()} /></TabsContent>
+        <div className="w-full overflow-x-auto pb-1">
+          <TabsList className="h-auto min-w-max justify-start gap-1 rounded-xl bg-muted/70 p-1">
+            <TabsTrigger
+              value="all"
+              className="h-9 flex-none rounded-lg px-3 data-active:bg-primary data-active:text-primary-foreground"
+            >
+              Semua ({devices.length})
+            </TabsTrigger>
+            {DEVICE_CATEGORIES.map(c => {
+              const count = devices.filter(d => d.category === c).length
+              return count > 0 ? (
+                <TabsTrigger
+                  key={c}
+                  value={c}
+                  className="h-9 flex-none rounded-lg px-3 data-active:bg-primary data-active:text-primary-foreground"
+                >
+                  {c} ({count})
+                </TabsTrigger>
+              ) : null
+            })}
+          </TabsList>
+        </div>
+        <TabsContent value="all" className="mt-4"><DeviceList items={filtered()} /></TabsContent>
         {DEVICE_CATEGORIES.map(c => (
-          <TabsContent key={c} value={c} className="mt-6"><DeviceList items={filtered(c)} /></TabsContent>
+          <TabsContent key={c} value={c} className="mt-4"><DeviceList items={filtered(c)} /></TabsContent>
         ))}
       </Tabs>
 
