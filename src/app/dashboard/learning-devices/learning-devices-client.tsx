@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, Download, FileText, Search, Trash2, FolderOpen, Loader2, Pencil } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { format, parseISO } from "date-fns"
@@ -27,6 +26,7 @@ export default function LearningDevicesClient({ initialDevices }: { initialDevic
   const [devices, setDevices] = useState<any[]>(initialDevices)
   const [searchQuery, setSearchQuery] = useState("")
   const [open, setOpen] = useState(false)
+  const [activeCategory, setActiveCategory] = useState("all")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [editingDevice, setEditingDevice] = useState<any | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -148,34 +148,39 @@ export default function LearningDevicesClient({ initialDevices }: { initialDevic
         <Input placeholder="Cari dokumen..." className="pl-10" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
       </div>
 
-      <Tabs defaultValue="all">
+      <div className="space-y-4">
         <div className="w-full overflow-x-auto pb-1">
-          <TabsList className="h-auto min-w-max justify-start gap-1 rounded-xl bg-muted/70 p-1">
-            <TabsTrigger
-              value="all"
-              className="h-9 flex-none rounded-lg px-3 data-active:bg-primary data-active:text-primary-foreground"
+          <div className="flex min-w-max items-center gap-1 rounded-xl bg-muted/70 p-1">
+            <Button
+              type="button"
+              size="sm"
+              variant={activeCategory === "all" ? "default" : "ghost"}
+              className="h-9 rounded-lg px-3"
+              onClick={() => setActiveCategory("all")}
             >
               Semua ({devices.length})
-            </TabsTrigger>
-            {DEVICE_CATEGORIES.map(c => {
-              const count = devices.filter(d => d.category === c).length
-              return count > 0 ? (
-                <TabsTrigger
-                  key={c}
-                  value={c}
-                  className="h-9 flex-none rounded-lg px-3 data-active:bg-primary data-active:text-primary-foreground"
+            </Button>
+            {DEVICE_CATEGORIES.map((category) => {
+              const count = devices.filter((device) => device.category === category).length
+              if (count === 0) return null
+              return (
+                <Button
+                  key={category}
+                  type="button"
+                  size="sm"
+                  variant={activeCategory === category ? "default" : "ghost"}
+                  className="h-9 rounded-lg px-3"
+                  onClick={() => setActiveCategory(category)}
                 >
-                  {c} ({count})
-                </TabsTrigger>
-              ) : null
+                  {category} ({count})
+                </Button>
+              )
             })}
-          </TabsList>
+          </div>
         </div>
-        <TabsContent value="all" className="mt-4"><DeviceList items={filtered()} /></TabsContent>
-        {DEVICE_CATEGORIES.map(c => (
-          <TabsContent key={c} value={c} className="mt-4"><DeviceList items={filtered(c)} /></TabsContent>
-        ))}
-      </Tabs>
+
+        <DeviceList items={activeCategory === "all" ? filtered() : filtered(activeCategory)} />
+      </div>
 
       <Dialog open={!!editingDevice} onOpenChange={(value) => !value && setEditingDevice(null)}>
         <DialogContent className="sm:max-w-[480px]">
