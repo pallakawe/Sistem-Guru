@@ -19,7 +19,7 @@ export async function getSchedules() {
   if (!activeYearId) return { data: [] }
 
   const { data, error } = await supabase.from('schedules')
-    .select('id, day_of_week, start_time, end_time, room, classes(id, name), subjects(id, name), schedule_subjects(subjects(id, name))')
+    .select('id, day_of_week, start_time, end_time, room, classes(id, name), subjects:schedules_subject_id_fkey(id, name), schedule_subjects(subjects:schedule_subjects_subject_id_fkey(id, name))')
     .eq('teacher_id', user.id).eq('academic_year_id', activeYearId)
     .order('day_of_week').order('start_time')
 
