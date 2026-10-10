@@ -55,6 +55,8 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
   const [error, setError] = useState("")
   const [editingSchedule, setEditingSchedule] = useState<any | null>(null)
   const [scheduleToDelete, setScheduleToDelete] = useState<any | null>(null)
+  const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([])
+  const [editSubjectIds, setEditSubjectIds] = useState<string[]>([])
   const { toast } = useToast()
 
   const getDayName = (dayValue: number) => {
@@ -80,6 +82,7 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
     }
 
     setOpen(false)
+    setSelectedSubjectIds([])
     setIsLoading(false)
   }
 
@@ -111,6 +114,28 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
     window.location.reload()
   }
 
+  const toggleSubject = (id: string, editing = false) => {
+    if (editing) {
+      setEditSubjectIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
+      return
+    }
+    setSelectedSubjectIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
+  }
+
+  const scheduleSubjectNames = (schedule: any) => {
+    const linked = (schedule.schedule_subjects || [])
+      .map((item: any) => item.subjects?.name)
+      .filter(Boolean)
+    return linked.length > 0 ? linked.join(", ") : schedule.subjects?.name || "Mata Pelajaran"
+  }
+
+  const scheduleSubjectIds = (schedule: any) => {
+    const linked = (schedule.schedule_subjects || [])
+      .map((item: any) => item.subjects?.id)
+      .filter(Boolean)
+    return linked.length > 0 ? linked : (schedule.subjects?.id ? [schedule.subjects.id] : [])
+  }
+
   const formatTime = (timeString: string) => {
     if (!timeString) return ""
     return timeString.substring(0, 5) // "08:00:00" -> "08:00"
@@ -128,7 +153,10 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Jadwal Mengajar</h1>
           <p className="text-muted-foreground">Kelola jadwal mengajar Anda per minggu.</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(value) => {
+          setOpen(value)
+          if (!value) setSelectedSubjectIds([])
+        }}>
           <DialogTrigger render={<Button><Plus className="mr-2 h-4 w-4" /> Tambah Jadwal</Button>} />
           <DialogContent className="sm:max-w-[425px]">
             <form action={onSubmit}>
@@ -176,19 +204,33 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
                   </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="subjectId">Mata Pelajaran</Label>
-                  <Select name="subjectId" required items={subjects.map(s => ({ value: s.id, label: s.name }))}>
-                    <SelectTrigger id="subjectId">
-                      <SelectValue placeholder="Pilih Mata Pelajaran" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subjects.length === 0 ? (
-                        <SelectItem value="none" disabled>Belum ada Mapel</SelectItem>
-                      ) : (
-                        subjects.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <Label>Mata Pelajaran</Label>
+                  <div className="grid gap-2 rounded-xl border bg-muted/20 p-3 sm:grid-cols-2">
+                    {subjects.length === 0 ? (
+                      <p className="col-span-full text-sm text-muted-foreground">Belum ada mata pelajaran.</p>
+                    ) : (
+                      subjects.map((subject) => {
+                        const checked = selectedSubjectIds.includes(subject.id)
+                        return (
+                          <label
+                            key={subject.id}
+                            className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${checked ? "border-primary bg-primary/10" : "bg-background hover:bg-muted/50"}`}
+                          >
+                            <input
+                              type="checkbox"
+                              name="subjectIds"
+                              value={subject.id}
+                              checked={checked}
+                              onChange={() => toggleSubject(subject.id)}
+                              className="h-4 w-4 accent-yellow-500"
+                            />
+                            <span className="text-sm font-medium">{subject.name}</span>
+                          </label>
+                        )
+                      })
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Bisa pilih lebih dari satu mata pelajaran.</p>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="room">Ruangan (Opsional)</Label>
@@ -207,7 +249,12 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
         </Dialog>
       </div>
 
-      <Dialog open={!!editingSchedule} onOpenChange={(value) => !value && setEditingSchedule(null)}>
+      <Dialog open={!!editingSchedule} onOpenChange={(value) => {
+        if (!value) {
+          setEditingSchedule(null)
+          setEditSubjectIds([])
+        }
+      }}>
         <DialogContent className="sm:max-w-[425px]">
           <form key={editingSchedule?.id} action={onEdit}>
             <DialogHeader>
@@ -236,10 +283,27 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
                 </div>
                 <div className="grid gap-2">
                   <Label>Mata Pelajaran</Label>
-                  <Select name="subjectId" defaultValue={editingSchedule.subjects?.id} items={subjects.map(x => ({ value: x.id, label: x.name }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{subjects.map(x => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <div className="grid gap-2 rounded-xl border bg-muted/20 p-3 sm:grid-cols-2">
+                    {subjects.map((subject) => {
+                      const checked = editSubjectIds.includes(subject.id)
+                      return (
+                        <label
+                          key={subject.id}
+                          className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${checked ? "border-primary bg-primary/10" : "bg-background hover:bg-muted/50"}`}
+                        >
+                          <input
+                            type="checkbox"
+                            name="subjectIds"
+                            value={subject.id}
+                            checked={checked}
+                            onChange={() => toggleSubject(subject.id, true)}
+                            className="h-4 w-4 accent-yellow-500"
+                          />
+                          <span className="text-sm font-medium">{subject.name}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
                 </div>
                 <div className="grid gap-2"><Label>Ruangan</Label><Input name="room" defaultValue={editingSchedule.room || ""} /></div>
               </div>
@@ -279,7 +343,7 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
                     <div className="text-sm font-mono font-bold text-primary">{formatTime(s.start_time)}<br /><span className="text-muted-foreground font-normal">{formatTime(s.end_time)}</span></div>
                     <div>
                       <p className="font-semibold">{s.classes?.name}</p>
-                      <p className="text-sm text-muted-foreground">{s.subjects?.name}</p>
+                      <p className="text-sm text-muted-foreground">{scheduleSubjectNames(s)}</p>
                     </div>
                   </div>
                   <Button size="sm" className="w-full sm:w-auto">Mulai Pertemuan</Button>
@@ -316,7 +380,7 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
                         <p className="font-semibold">{s.classes?.name}</p>
                         <div className="flex items-center gap-1 mt-1 opacity-70">
                           <BookOpen className="h-3 w-3" />
-                          <span>{s.subjects?.name}</span>
+                          <span>{scheduleSubjectNames(s)}</span>
                         </div>
                         {s.room && (
                           <div className="flex items-center gap-1 opacity-70">
@@ -325,7 +389,7 @@ export default function SchedulesClient({ initialSchedules, classes, subjects }:
                           </div>
                         )}
                         <div className="mt-2 flex justify-end gap-1">
-                          <Button type="button" variant="ghost" size="icon-sm" onClick={() => setEditingSchedule(s)} title="Edit jadwal">
+                          <Button type="button" variant="ghost" size="icon-sm" onClick={() => { setEditingSchedule(s); setEditSubjectIds(scheduleSubjectIds(s)) }} title="Edit jadwal">
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                           <Button type="button" variant="ghost" size="icon-sm" className="text-destructive hover:text-destructive" onClick={() => setScheduleToDelete(s)} title="Hapus jadwal">

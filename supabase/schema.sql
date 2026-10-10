@@ -360,3 +360,13 @@ create table if not exists daily_attendance_records (
   unique (daily_attendance_id, student_id)
 );
 alter table daily_attendance_records enable row level security;
+
+
+-- Table: schedule_subjects (multiple mata pelajaran per jadwal)
+create table if not exists schedule_subjects (
+  schedule_id uuid references schedules(id) on delete cascade not null,
+  subject_id uuid references subjects(id) on delete restrict not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  primary key (schedule_id, subject_id)
+);
+alter table schedule_subjects enable row level security;

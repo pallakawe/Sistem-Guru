@@ -19,7 +19,7 @@ export async function getSchedules() {
   if (!activeYearId) return { data: [] }
 
   const { data, error } = await supabase.from('schedules')
-    .select('id, day_of_week, start_time, end_time, room, classes(id, name), subjects(id, name)')
+    .select('id, day_of_week, start_time, end_time, room, classes(id, name), subjects(id, name), schedule_subjects(subjects(id, name))')
     .eq('teacher_id', user.id).eq('academic_year_id', activeYearId)
     .order('day_of_week').order('start_time')
 
@@ -50,27 +50,39 @@ export async function createSchedule(formData: FormData) {
   const startTime = String(formData.get('startTime') || '')
   const endTime = String(formData.get('endTime') || '')
   const classId = String(formData.get('classId') || '')
-  const subjectId = String(formData.get('subjectId') || '')
+  const subjectIds = formData.getAll('subjectIds').map((value) => String(value)).filter(Boolean)
   const room = String(formData.get('room') || '').trim()
 
-  if (!Number.isInteger(dayOfWeek) || dayOfWeek < 1 || dayOfWeek > 7 || !startTime || !endTime || !classId || !subjectId) {
-    return { error: 'Mohon lengkapi semua field yang wajib.' }
+  if (!Number.isInteger(dayOfWeek) || dayOfWeek < 1 || dayOfWeek > 7 || !startTime || !endTime || !classId || subjectIds.length === 0) {
+    return { error: 'Mohon lengkapi semua field yang wajib dan pilih minimal 1 mata pelajaran.' }
   }
   if (endTime <= startTime) return { error: 'Jam selesai harus lebih akhir daripada jam mulai.' }
 
-  const [{ data: ownedClass }, { data: ownedSubject }] = await Promise.all([
+  const [{ data: ownedClass }, { data: ownedSubjects, error: subjectsError }] = await Promise.all([
     supabase.from('classes').select('id').eq('id', classId).eq('teacher_id', user.id)
       .eq('academic_year_id', activeYearId).maybeSingle(),
-    supabase.from('subjects').select('id').eq('id', subjectId).eq('teacher_id', user.id).maybeSingle(),
+    supabase.from('subjects').select('id').in('id', subjectIds).eq('teacher_id', user.id),
   ])
-  if (!ownedClass || !ownedSubject) return { error: 'Kelas atau mata pelajaran tidak valid.' }
+  if (subjectsError) return { error: subjectsError.message }
+  if (!ownedClass || (ownedSubjects || []).length !== [...new Set(subjectIds)].length) {
+    return { error: 'Kelas atau mata pelajaran tidak valid.' }
+  }
 
-  const { error } = await supabase.from('schedules').insert({
+  const primarySubjectId = subjectIds[0]
+  const { data: schedule, error } = await supabase.from('schedules').insert({
     day_of_week: dayOfWeek, start_time: startTime, end_time: endTime,
-    class_id: classId, subject_id: subjectId, room: room || null,
+    class_id: classId, subject_id: primarySubjectId, room: room || null,
     academic_year_id: activeYearId, teacher_id: user.id
-  })
+  }).select('id').single()
   if (error) return { error: error.message }
+
+  const { error: linkError } = await supabase.from('schedule_subjects').insert(
+    [...new Set(subjectIds)].map((subjectId) => ({ schedule_id: schedule.id, subject_id: subjectId }))
+  )
+  if (linkError) {
+    await supabase.from('schedules').delete().eq('id', schedule.id).eq('teacher_id', user.id)
+    return { error: linkError.message }
+  }
 
   revalidatePath('/dashboard/schedules')
   return { success: true }
@@ -86,28 +98,32 @@ export async function updateSchedule(scheduleId: string, formData: FormData) {
   const startTime = String(formData.get('startTime') || '')
   const endTime = String(formData.get('endTime') || '')
   const classId = String(formData.get('classId') || '')
-  const subjectId = String(formData.get('subjectId') || '')
+  const subjectIds = formData.getAll('subjectIds').map((value) => String(value)).filter(Boolean)
   const room = String(formData.get('room') || '').trim()
 
-  if (!Number.isInteger(dayOfWeek) || dayOfWeek < 1 || dayOfWeek > 7 || !startTime || !endTime || !classId || !subjectId) {
-    return { error: 'Mohon lengkapi semua field yang wajib.' }
+  if (!Number.isInteger(dayOfWeek) || dayOfWeek < 1 || dayOfWeek > 7 || !startTime || !endTime || !classId || subjectIds.length === 0) {
+    return { error: 'Mohon lengkapi semua field yang wajib dan pilih minimal 1 mata pelajaran.' }
   }
   if (endTime <= startTime) return { error: 'Jam selesai harus lebih akhir daripada jam mulai.' }
 
-  const [{ data: ownedClass }, { data: ownedSubject }] = await Promise.all([
+  const [{ data: ownedClass }, { data: ownedSubjects, error: subjectsError }] = await Promise.all([
     supabase.from('classes').select('id').eq('id', classId).eq('teacher_id', user.id)
       .eq('academic_year_id', activeYearId).maybeSingle(),
-    supabase.from('subjects').select('id').eq('id', subjectId).eq('teacher_id', user.id).maybeSingle(),
+    supabase.from('subjects').select('id').in('id', subjectIds).eq('teacher_id', user.id),
   ])
-  if (!ownedClass || !ownedSubject) return { error: 'Kelas atau mata pelajaran tidak valid.' }
+  if (subjectsError) return { error: subjectsError.message }
+  if (!ownedClass || (ownedSubjects || []).length !== [...new Set(subjectIds)].length) {
+    return { error: 'Kelas atau mata pelajaran tidak valid.' }
+  }
 
+  const primarySubjectId = subjectIds[0]
   const { data, error } = await supabase.from('schedules')
     .update({
       day_of_week: dayOfWeek,
       start_time: startTime,
       end_time: endTime,
       class_id: classId,
-      subject_id: subjectId,
+      subject_id: primarySubjectId,
       room: room || null,
     })
     .eq('id', scheduleId)
@@ -118,6 +134,16 @@ export async function updateSchedule(scheduleId: string, formData: FormData) {
 
   if (error) return { error: error.message }
   if (!data) return { error: 'Jadwal tidak ditemukan.' }
+
+  const { error: clearError } = await supabase.from('schedule_subjects')
+    .delete()
+    .eq('schedule_id', scheduleId)
+  if (clearError) return { error: clearError.message }
+
+  const { error: linkError } = await supabase.from('schedule_subjects').insert(
+    [...new Set(subjectIds)].map((subjectId) => ({ schedule_id: scheduleId, subject_id: subjectId }))
+  )
+  if (linkError) return { error: linkError.message }
 
   revalidatePath('/dashboard/schedules')
   revalidatePath('/dashboard')
