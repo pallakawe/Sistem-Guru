@@ -1,16 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
-import { useState, useTransition } from "react"
+import { useMemo, useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, GraduationCap, ChevronLeft, Loader2, Save, Pencil, Trash2, FileSpreadsheet, FileDown } from "lucide-react"
+import { Plus, GraduationCap, ChevronLeft, Loader2, Save, Pencil, Trash2, FileSpreadsheet, FileDown, FolderOpen } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { createAssessment, getAssessmentScores, saveScores, updateAssessment, deleteAssessment } from "./actions"
 import { useToast } from "@/hooks/use-toast"
@@ -36,6 +35,7 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
   const [loadingScores, setLoadingScores] = useState(false)
   const [editingAssessment, setEditingAssessment] = useState<any | null>(null)
   const [assessmentToDelete, setAssessmentToDelete] = useState<any | null>(null)
+  const [activeType, setActiveType] = useState<string | null>(null)
   const { toast } = useToast()
 
   async function handleViewScores(assessment: any) {
@@ -110,6 +110,15 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
       toast({ title: "Dihapus", description: "Komponen penilaian dan nilai terkait berhasil dihapus." })
     })
   }
+
+  const assessmentFolders = useMemo(() => ASSESSMENT_TYPES.map((type) => ({
+    type,
+    count: assessments.filter((assessment) => assessment.type === type).length,
+  })), [assessments])
+
+  const visibleAssessments = activeType
+    ? assessments.filter((assessment) => assessment.type === activeType)
+    : assessments
 
   const scoreExport = selectedAssessment ? {
     title: `Daftar Nilai - ${selectedAssessment.title}`,
@@ -206,30 +215,70 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
         <Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" /> Buat Komponen Nilai</Button>
       </div>
 
-      <Tabs defaultValue="components">
-        <TabsList>
-          <TabsTrigger value="components">Komponen Penilaian</TabsTrigger>
-        </TabsList>
+      {assessments.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed py-16">
+          <GraduationCap className="mb-4 h-12 w-12 text-muted-foreground" />
+          <h3 className="text-lg font-medium">Belum ada komponen penilaian</h3>
+          <p className="mb-4 text-sm text-muted-foreground">Buat komponen penilaian seperti Tugas, Kuis, atau UTS.</p>
+          <Button onClick={() => setOpen(true)}>Buat Komponen Nilai</Button>
+        </div>
+      ) : !activeType ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {assessmentFolders.map((folder) => (
+            <button
+              key={folder.type}
+              type="button"
+              onClick={() => setActiveType(folder.type)}
+              className="group rounded-2xl border bg-card p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md"
+            >
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+                <FolderOpen className="h-6 w-6" />
+              </div>
+              <div className="flex items-end justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="truncate font-semibold">{folder.type}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{folder.count} komponen</p>
+                </div>
+                <span className="text-sm font-medium text-primary opacity-0 transition group-hover:opacity-100">Buka →</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 rounded-2xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <Button type="button" variant="outline" size="sm" onClick={() => setActiveType(null)}>
+                <ChevronLeft className="mr-1 h-4 w-4" /> Kembali
+              </Button>
+              <div>
+                <p className="text-xs text-muted-foreground">Folder Jenis Penilaian</p>
+                <h2 className="font-semibold">{activeType}</h2>
+              </div>
+            </div>
+            <Badge variant="secondary">{visibleAssessments.length} komponen</Badge>
+          </div>
 
-        <TabsContent value="components" className="mt-6">
-          {assessments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-lg">
-              <GraduationCap className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">Belum ada komponen penilaian</h3>
-              <p className="text-sm text-muted-foreground mb-4">Buat komponen penilaian seperti Tugas, Kuis, atau UTS.</p>
-              <Button onClick={() => setOpen(true)}>Buat Komponen Nilai</Button>
+          {visibleAssessments.length === 0 ? (
+            <div className="rounded-2xl border border-dashed py-12 text-center">
+              <FolderOpen className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+              <p className="font-medium">Belum ada komponen di folder {activeType}</p>
+              <p className="mt-1 text-sm text-muted-foreground">Buat komponen nilai baru untuk jenis ini.</p>
+              <Button className="mt-4" onClick={() => setOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Buat Komponen
+              </Button>
             </div>
           ) : (
             <div className="grid gap-3">
-              {assessments.map(a => (
-                <Card key={a.id} className="hover:shadow-sm transition-shadow">
+              {visibleAssessments.map((a) => (
+                <Card key={a.id} className="transition-shadow hover:shadow-sm">
                   <CardContent className="flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
-                      <div className={`text-sm px-2 py-1 rounded-md font-medium ${TYPE_BADGE[a.type] || "bg-gray-100 text-gray-700"}`}>
+                      <div className={`rounded-md px-2 py-1 text-sm font-medium ${TYPE_BADGE[a.type] || "bg-gray-100 text-gray-700"}`}>
                         {a.type}
                       </div>
-                      <div>
-                        <h4 className="font-medium">{a.title}</h4>
+                      <div className="min-w-0">
+                        <h4 className="truncate font-medium">{a.title}</h4>
                         <p className="text-sm text-muted-foreground">
                           {a.classes?.name} · {a.subjects?.name}
                           {a.weight ? ` · Bobot: ${a.weight}%` : ''}
@@ -246,8 +295,8 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
               ))}
             </div>
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
 
       <Dialog open={!!editingAssessment} onOpenChange={(value) => !value && setEditingAssessment(null)}>
         <DialogContent className="sm:max-w-[480px]">
