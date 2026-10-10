@@ -42,7 +42,7 @@ export default async function DashboardPage() {
 
   const scheduleQuery = supabase
     .from("schedules")
-    .select("id, start_time, end_time, room, classes(name), subjects(name)")
+    .select("id, start_time, end_time, room, classes(name), subjects:schedules_subject_id_fkey(name), schedule_subjects(subjects:schedule_subjects_subject_id_fkey(name))")
     .eq("teacher_id", teacherId)
     .eq("day_of_week", dayOfWeek)
     .order("start_time")
@@ -288,7 +288,7 @@ export default async function DashboardPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <h4 className="font-semibold">{schedule.classes?.name || "Kelas"}</h4>
-                      <p className="text-sm text-muted-foreground">{schedule.subjects?.name || "Mata Pelajaran"}</p>
+                      <p className="text-sm text-muted-foreground">{(schedule.schedule_subjects || []).map((item: any) => item.subjects?.name).filter(Boolean).join(", ") || schedule.subjects?.name || "Mata Pelajaran"}</p>
                     </div>
                     <div className="text-xs text-muted-foreground sm:text-sm">{schedule.room || "—"}</div>
                   </div>
