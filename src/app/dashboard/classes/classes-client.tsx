@@ -371,7 +371,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                   <TableHead>NIS/NISN</TableHead>
                   <TableHead>Nama Lengkap</TableHead>
                   <TableHead>L/P</TableHead>
-                  <TableHead>Tinggi</TableHead>
+                  <TableHead>Tinggi Badan</TableHead>
                   <TableHead>Berat Badan</TableHead>
                   <TableHead>Nama Ayah</TableHead>
                   <TableHead>Nama Ibu</TableHead>
@@ -486,7 +486,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                         <TableHead>NISN</TableHead>
                         <TableHead>L/P</TableHead>
                         <TableHead>Tinggi</TableHead>
-                        <TableHead>Berat</TableHead>
+                        <TableHead>Berat Badan</TableHead>
                         <TableHead>Nama Ayah</TableHead>
                         <TableHead>Nama Ibu</TableHead>
                       </TableRow>
