@@ -6,6 +6,8 @@ create table if not exists schools (
   id uuid default uuid_generate_v4() primary key,
   name text not null,
   address text,
+  principal_name text,
+  principal_nip text,
   teacher_id uuid references auth.users(id) on delete cascade not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
