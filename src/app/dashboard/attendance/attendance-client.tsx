@@ -150,10 +150,9 @@ export default function AttendanceClient({ classes }: { classes: any[] }) {
     subtitle: selectedDate
       ? new Intl.DateTimeFormat("id-ID", { dateStyle: "full" }).format(new Date(selectedDate + "T00:00:00"))
       : undefined,
-    headers: ["No", "No. Absen", "Nama Siswa", "Status"],
+    headers: ["No", "Nama Siswa", "Status"],
     rows: students.map((student, index) => [
       index + 1,
-      student.student_number || "-",
       student.full_name,
       STATUS_LABELS[student.status] || student.status,
     ]),
@@ -341,11 +340,11 @@ export default function AttendanceClient({ classes }: { classes: any[] }) {
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                        {student.student_number || index + 1}
+{index + 1}
                       </span>
                       <div className="min-w-0">
                         <p className="truncate font-medium">{student.full_name}</p>
-                        <p className="text-xs text-muted-foreground">No. Absen {student.student_number || index + 1}</p>
+<p className="text-xs text-muted-foreground">Siswa ke-{index + 1}</p>
                       </div>
                     </div>
 
