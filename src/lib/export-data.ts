@@ -163,8 +163,8 @@ export async function exportMonthlyAttendanceToExcel(data: MonthlyAttendanceExpo
     [],
     ["Keterangan: H = Hadir, S = Sakit, I = Izin, A = Alpa"],
     [],
-    ["Mengetahui,", "", "", "Wali Kelas"],
-    ["Kepala Sekolah", "", "", ""],
+    ["Mengetahui,", "", "", "Pallakawe,"],
+    ["Kepala Sekolah", "", "", "Wali Kelas"],
     [],
     [],
     [data.principalName || "(................................)", "", "", data.homeroomTeacher || "(................................)"],
@@ -269,9 +269,10 @@ export async function exportMonthlyAttendanceToPdf(data: MonthlyAttendanceExport
 
   doc.setFontSize(8)
   doc.text("Mengetahui,", leftX, y, { align: "center" })
-  doc.text("Wali Kelas", rightX, y, { align: "center" })
+  doc.text("Pallakawe,", rightX, y, { align: "center" })
   y += 5
   doc.text("Kepala Sekolah", leftX, y, { align: "center" })
+  doc.text("Wali Kelas", rightX, y, { align: "center" })
 
   y += 20
   doc.setFont("helvetica", "bold")
