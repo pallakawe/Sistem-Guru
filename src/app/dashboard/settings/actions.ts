@@ -31,7 +31,7 @@ export async function getProfileData() {
   if (profile?.school_id) {
     const { data } = await supabase
       .from('schools')
-      .select('id, name, address')
+      .select('id, name, address, principal_name, principal_nip')
       .eq('id', profile.school_id)
       .eq('teacher_id', userData.user.id)
       .maybeSingle()
@@ -89,6 +89,8 @@ export async function saveSchool(formData: FormData) {
 
   const schoolName = String(formData.get('schoolName') || '').trim()
   const schoolAddress = String(formData.get('schoolAddress') || '').trim()
+  const principalName = String(formData.get('principalName') || '').trim()
+  const principalNip = String(formData.get('principalNip') || '').trim()
   const existingSchoolId = String(formData.get('schoolId') || '').trim()
 
   if (!schoolName) return { error: 'Nama sekolah wajib diisi.' }
@@ -96,7 +98,7 @@ export async function saveSchool(formData: FormData) {
   if (existingSchoolId) {
     const { error } = await supabase
       .from('schools')
-      .update({ name: schoolName, address: schoolAddress })
+      .update({ name: schoolName, address: schoolAddress, principal_name: principalName || null, principal_nip: principalNip || null })
       .eq('id', existingSchoolId)
       .eq('teacher_id', userData.user.id)
 
@@ -107,6 +109,8 @@ export async function saveSchool(formData: FormData) {
       .insert({
         name: schoolName,
         address: schoolAddress,
+        principal_name: principalName || null,
+        principal_nip: principalNip || null,
         teacher_id: userData.user.id,
       })
       .select('id')
