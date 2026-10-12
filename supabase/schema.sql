@@ -96,6 +96,15 @@ create table if not exists students (
   full_name text not null,
   gender text, -- 'L' or 'P'
   student_number integer, -- Nomor absen
+  height_cm numeric,
+  weight_kg numeric,
+  father_name text,
+  mother_name text,
+  father_job text,
+  mother_job text,
+  father_phone text,
+  mother_phone text,
+  full_address text,
   class_id uuid references classes(id) on delete cascade not null,
   avatar_url text,
   is_active boolean default true,
