@@ -219,11 +219,7 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
                       <Badge variant="outline">{j.meetings?.classes?.name}</Badge>
                     </div>
                   </div>
-                  <div className="hidden shrink-0 gap-1 sm:flex">
-                    <Button variant="ghost" size="sm" onClick={() => setViewJournal(j)} title="Lihat jurnal"><Eye className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="sm" onClick={() => setEditingJournal(j)} title="Edit jurnal"><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setJournalToDelete(j)} title="Hapus jurnal"><Trash2 className="h-4 w-4" /></Button>
-                  </div>
+
                 </div>
               </CardHeader>
               <CardContent>
@@ -234,7 +230,7 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
                 <p className="text-sm mt-3 line-clamp-2 text-muted-foreground">{j.learning_objectives}</p>
                 {j.method && <div className="mt-2"><Badge variant="outline" className="text-xs">{j.method}</Badge></div>}
 
-                <div className="mt-4 grid grid-cols-3 gap-2 border-t pt-3 sm:hidden">
+                <div className="mt-4 grid grid-cols-3 gap-2 border-t pt-3">
                   <Button variant="outline" size="sm" onClick={() => setViewJournal(j)}>
                     <Eye className="mr-1 h-4 w-4" /> Lihat
                   </Button>
