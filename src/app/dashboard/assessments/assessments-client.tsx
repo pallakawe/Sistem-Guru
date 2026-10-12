@@ -124,10 +124,9 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
     title: `Daftar Nilai - ${selectedAssessment.title}`,
     fileName: `nilai-${selectedAssessment.classes?.name || "kelas"}-${selectedAssessment.title}`,
     subtitle: `${selectedAssessment.classes?.name || ""} · ${selectedAssessment.subjects?.name || ""} · Bobot ${selectedAssessment.weight || 0}%`,
-    headers: ["No", "No. Absen", "Nama Siswa", "Nilai"],
+    headers: ["No", "Nama Siswa", "Nilai"],
     rows: students.map((student, index) => [
       index + 1,
-      student.student_number || "-",
       student.full_name,
       localScores[student.id] || "0",
     ]),
