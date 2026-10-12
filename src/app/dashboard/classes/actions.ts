@@ -32,7 +32,7 @@ export async function getStudentsByClass(classId: string) {
 
   const { data, error } = await supabase
     .from('students')
-    .select('id, full_name, nis, nisn, gender, student_number, is_active')
+    .select('id, full_name, nis, nisn, gender, student_number, height_cm, weight_kg, father_name, mother_name, father_job, mother_job, father_phone, mother_phone, full_address, is_active')
     .eq('class_id', classId)
     .eq('teacher_id', userData.user.id)
     .order('student_number', { ascending: true, nullsFirst: false })
@@ -77,6 +77,15 @@ export async function addStudent(formData: FormData) {
   const nisn = formData.get('nisn') as string
   const gender = formData.get('gender') as string
   const studentNumber = parseInt(formData.get('studentNumber') as string) || null
+  const heightCm = Number(formData.get('heightCm') || 0) || null
+  const weightKg = Number(formData.get('weightKg') || 0) || null
+  const fatherName = String(formData.get('fatherName') || '').trim()
+  const motherName = String(formData.get('motherName') || '').trim()
+  const fatherJob = String(formData.get('fatherJob') || '').trim()
+  const motherJob = String(formData.get('motherJob') || '').trim()
+  const fatherPhone = String(formData.get('fatherPhone') || '').trim()
+  const motherPhone = String(formData.get('motherPhone') || '').trim()
+  const fullAddress = String(formData.get('fullAddress') || '').trim()
 
   if (!classId || !fullName) return { error: 'Kelas dan nama siswa wajib diisi.' }
 
@@ -95,7 +104,11 @@ export async function addStudent(formData: FormData) {
 
   const { error } = await supabase.from('students').insert({
     class_id: classId, full_name: fullName, nis, nisn, gender,
-    student_number: studentNumber, teacher_id: userData.user.id
+    student_number: studentNumber, height_cm: heightCm, weight_kg: weightKg,
+    father_name: fatherName || null, mother_name: motherName || null,
+    father_job: fatherJob || null, mother_job: motherJob || null,
+    father_phone: fatherPhone || null, mother_phone: motherPhone || null,
+    full_address: fullAddress || null, teacher_id: userData.user.id
   })
   if (error) return { error: error.message }
 
@@ -113,9 +126,25 @@ export async function updateStudent(studentId: string, formData: FormData) {
   const nisn = formData.get('nisn') as string
   const gender = formData.get('gender') as string
   const studentNumber = parseInt(formData.get('studentNumber') as string) || null
+  const heightCm = Number(formData.get('heightCm') || 0) || null
+  const weightKg = Number(formData.get('weightKg') || 0) || null
+  const fatherName = String(formData.get('fatherName') || '').trim()
+  const motherName = String(formData.get('motherName') || '').trim()
+  const fatherJob = String(formData.get('fatherJob') || '').trim()
+  const motherJob = String(formData.get('motherJob') || '').trim()
+  const fatherPhone = String(formData.get('fatherPhone') || '').trim()
+  const motherPhone = String(formData.get('motherPhone') || '').trim()
+  const fullAddress = String(formData.get('fullAddress') || '').trim()
 
   const { error } = await supabase.from('students')
-    .update({ full_name: fullName, nis, nisn, gender, student_number: studentNumber })
+    .update({
+      full_name: fullName, nis, nisn, gender, student_number: studentNumber,
+      height_cm: heightCm, weight_kg: weightKg,
+      father_name: fatherName || null, mother_name: motherName || null,
+      father_job: fatherJob || null, mother_job: motherJob || null,
+      father_phone: fatherPhone || null, mother_phone: motherPhone || null,
+      full_address: fullAddress || null,
+    })
     .eq('id', studentId)
     .eq('teacher_id', userData.user.id)
   if (error) return { error: error.message }
@@ -238,6 +267,15 @@ type ImportedStudent = {
   nisn?: string
   gender?: string
   student_number?: number | null
+  height_cm?: number | null
+  weight_kg?: number | null
+  father_name?: string
+  mother_name?: string
+  father_job?: string
+  mother_job?: string
+  father_phone?: string
+  mother_phone?: string
+  full_address?: string
 }
 
 export async function importStudents(classId: string, rows: ImportedStudent[]) {
@@ -280,6 +318,8 @@ export async function importStudents(classId: string, rows: ImportedStudent[]) {
     const number = row.student_number === null || row.student_number === undefined
       ? null
       : Number(row.student_number)
+    const heightCm = row.height_cm === null || row.height_cm === undefined ? null : Number(row.height_cm)
+    const weightKg = row.weight_kg === null || row.weight_kg === undefined ? null : Number(row.weight_kg)
 
     return {
       rowNumber: index + 2,
@@ -288,6 +328,15 @@ export async function importStudents(classId: string, rows: ImportedStudent[]) {
       nisn,
       gender,
       student_number: number,
+      height_cm: heightCm,
+      weight_kg: weightKg,
+      father_name: String(row.father_name || '').trim(),
+      mother_name: String(row.mother_name || '').trim(),
+      father_job: String(row.father_job || '').trim(),
+      mother_job: String(row.mother_job || '').trim(),
+      father_phone: String(row.father_phone || '').trim(),
+      mother_phone: String(row.mother_phone || '').trim(),
+      full_address: String(row.full_address || '').trim(),
     }
   })
 
@@ -297,6 +346,12 @@ export async function importStudents(classId: string, rows: ImportedStudent[]) {
     if (row.gender && !['L', 'P'].includes(row.gender)) invalidRows.push(`Baris ${row.rowNumber}: jenis kelamin tidak valid.`)
     if (row.student_number !== null && (!Number.isInteger(row.student_number) || row.student_number < 1)) {
       invalidRows.push(`Baris ${row.rowNumber}: nomor absen harus bilangan bulat positif.`)
+    }
+    if (row.height_cm !== null && (!Number.isFinite(row.height_cm) || row.height_cm <= 0)) {
+      invalidRows.push(`Baris ${row.rowNumber}: tinggi badan tidak valid.`)
+    }
+    if (row.weight_kg !== null && (!Number.isFinite(row.weight_kg) || row.weight_kg <= 0)) {
+      invalidRows.push(`Baris ${row.rowNumber}: berat badan tidak valid.`)
     }
   })
 
@@ -356,6 +411,15 @@ export async function importStudents(classId: string, rows: ImportedStudent[]) {
       nisn: row.nisn || null,
       gender: row.gender || null,
       student_number: row.student_number,
+      height_cm: row.height_cm,
+      weight_kg: row.weight_kg,
+      father_name: row.father_name || null,
+      mother_name: row.mother_name || null,
+      father_job: row.father_job || null,
+      mother_job: row.mother_job || null,
+      father_phone: row.father_phone || null,
+      mother_phone: row.mother_phone || null,
+      full_address: row.full_address || null,
       teacher_id: userData.user.id,
       is_active: true,
     }))
