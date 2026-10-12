@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CheckCircle2, Loader2, Save, FileSpreadsheet, FileDown, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react"
-import { getDailyAttendance, getMonthlyAttendanceSummary, saveDailyAttendance } from "./actions"
+import { getDailyAttendance, getMonthlyAttendanceSummary, getMonthlyAttendanceRecap, saveDailyAttendance } from "./actions"
 import { useToast } from "@/hooks/use-toast"
-import { exportRowsToExcel, exportRowsToPdf } from "@/lib/export-data"
+import { exportMonthlyAttendanceToExcel, exportMonthlyAttendanceToPdf } from "@/lib/export-data"
 
 const STATUS_LABELS: Record<string, string> = {
   H: "Hadir",
@@ -111,6 +111,46 @@ export default function AttendanceClient({ classes }: { classes: any[] }) {
     setStudents((current) => current.map((student) => ({ ...student, status: "H" })))
   }
 
+  async function handleMonthlyExport(type: "excel" | "pdf") {
+    if (!selectedClassId || !selectedMonth) return
+
+    setIsLoading(true)
+    const result = await getMonthlyAttendanceRecap(selectedClassId, selectedMonth)
+    setIsLoading(false)
+
+    if (result.error) {
+      toast({ title: "Gagal membuat rekap", description: result.error, variant: "destructive" })
+      return
+    }
+
+    if (!result.dates || result.dates.length === 0) {
+      toast({ title: "Belum ada absensi", description: "Belum ada data absensi pada bulan yang dipilih." })
+      return
+    }
+
+    const monthLabel = new Intl.DateTimeFormat("id-ID", {
+      month: "long",
+      year: "numeric",
+    }).format(new Date(year, month - 1, 1))
+
+    const payload = {
+      className: result.className || selectedClass?.name || "",
+      monthLabel,
+      fileName: `rekap-absensi-${result.className || selectedClass?.name || "kelas"}-${selectedMonth}`,
+      schoolName: result.schoolName || "",
+      schoolAddress: result.schoolAddress || "",
+      dates: result.dates,
+      rows: result.rows || [],
+      principalName: result.principalName || "",
+      principalNip: result.principalNip || "",
+      homeroomTeacher: result.homeroomTeacher || "",
+      homeroomTeacherNip: result.homeroomTeacherNip || "",
+    }
+
+    if (type === "excel") await exportMonthlyAttendanceToExcel(payload)
+    else await exportMonthlyAttendanceToPdf(payload)
+  }
+
   function handleSave() {
     if (!selectedClassId || !selectedDate || students.length === 0) return
 
@@ -143,20 +183,6 @@ export default function AttendanceClient({ classes }: { classes: any[] }) {
     },
     { H: 0, S: 0, I: 0, A: 0 }
   )
-
-  const attendanceExport = {
-    title: selectedClass ? `Daftar Hadir - ${selectedClass.name}` : "Daftar Hadir",
-    fileName: selectedClass && selectedDate ? `absensi-${selectedClass.name}-${selectedDate}` : "absensi",
-    subtitle: selectedDate
-      ? new Intl.DateTimeFormat("id-ID", { dateStyle: "full" }).format(new Date(selectedDate + "T00:00:00"))
-      : undefined,
-    headers: ["No", "Nama Siswa", "Status"],
-    rows: students.map((student, index) => [
-      index + 1,
-      student.full_name,
-      STATUS_LABELS[student.status] || student.status,
-    ]),
-  }
 
   return (
     <div className="flex flex-col gap-4 sm:gap-6">
@@ -199,6 +225,28 @@ export default function AttendanceClient({ classes }: { classes: any[] }) {
                   onChange={(event) => setSelectedMonth(event.target.value)}
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!selectedClassId || isLoading}
+                  onClick={() => handleMonthlyExport("excel")}
+                >
+                  <FileSpreadsheet className="mr-2 h-4 w-4" /> Rekap Excel
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!selectedClassId || isLoading}
+                  onClick={() => handleMonthlyExport("pdf")}
+                >
+                  <FileDown className="mr-2 h-4 w-4" /> Rekap PDF
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Rekap bulanan memuat seluruh tanggal absensi dalam satu tabel dan area tanda tangan Kepala Sekolah serta Wali Kelas.
+              </p>
             </CardContent>
           </Card>
 
@@ -278,14 +326,8 @@ export default function AttendanceClient({ classes }: { classes: any[] }) {
               </div>
 
               {students.length > 0 && (
-                <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
-                  <Button variant="outline" onClick={() => exportRowsToExcel(attendanceExport)}>
-                    <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel
-                  </Button>
-                  <Button variant="outline" onClick={() => exportRowsToPdf(attendanceExport)}>
-                    <FileDown className="mr-2 h-4 w-4" /> PDF
-                  </Button>
-                  <Button variant="secondary" className="col-span-2 sm:col-span-1" onClick={setAllPresent}>
+                <div className="flex w-full sm:w-auto sm:justify-end">
+                  <Button variant="secondary" className="w-full sm:w-auto" onClick={setAllPresent}>
                     <CheckCircle2 className="mr-2 h-4 w-4" /> Hadir Semua
                   </Button>
                 </div>
