@@ -10,7 +10,7 @@ export async function getProfileData() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, nip, nuptk, phone, subject_specialty, active_academic_year_id, school_id')
+    .select('full_name, nip, nuptk, phone, subject_specialty, avatar_url, birth_place, birth_date, address, gender, religion, marital_status, social_media, education_level, education_institution, education_major, graduation_year, previous_school, teaching_years, position, hobbies, favorite_activity, favorite_drink, active_academic_year_id, school_id')
     .eq('id', userData.user.id)
     .single()
 
@@ -56,8 +56,25 @@ export async function saveProfile(formData: FormData) {
     full_name: formData.get('fullName') as string,
     nip: formData.get('nip') as string,
     nuptk: formData.get('nuptk') as string,
-    phone: formData.get('phone') as string,
-    subject_specialty: formData.get('subjectSpecialty') as string,
+    phone: String(formData.get('phone') || '').trim() || null,
+    subject_specialty: String(formData.get('subjectSpecialty') || '').trim() || null,
+    birth_place: String(formData.get('birthPlace') || '').trim() || null,
+    birth_date: String(formData.get('birthDate') || '').trim() || null,
+    address: String(formData.get('address') || '').trim() || null,
+    gender: String(formData.get('gender') || '').trim() || null,
+    religion: String(formData.get('religion') || '').trim() || null,
+    marital_status: String(formData.get('maritalStatus') || '').trim() || null,
+    social_media: String(formData.get('socialMedia') || '').trim() || null,
+    education_level: String(formData.get('educationLevel') || '').trim() || null,
+    education_institution: String(formData.get('educationInstitution') || '').trim() || null,
+    education_major: String(formData.get('educationMajor') || '').trim() || null,
+    graduation_year: Number(formData.get('graduationYear') || 0) || null,
+    previous_school: String(formData.get('previousSchool') || '').trim() || null,
+    teaching_years: Number(formData.get('teachingYears') || 0) || null,
+    position: String(formData.get('position') || '').trim() || null,
+    hobbies: String(formData.get('hobbies') || '').trim() || null,
+    favorite_activity: String(formData.get('favoriteActivity') || '').trim() || null,
+    favorite_drink: String(formData.get('favoriteDrink') || '').trim() || null,
   }).eq('id', userData.user.id)
 
   if (error) return { error: error.message }
