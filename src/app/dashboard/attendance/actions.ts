@@ -218,3 +218,108 @@ export async function saveDailyAttendance(
   revalidatePath('/dashboard')
   return { success: true }
 }
+
+
+export async function getMonthlyAttendanceRecap(classId: string, month: string) {
+  const { supabase, user, activeYearId } = await getContext()
+  if (!user) return { error: 'Unauthorized' }
+  if (!activeYearId) return { error: 'Tahun ajaran aktif belum diatur.' }
+  if (!/^\d{4}-\d{2}$/.test(month)) return { error: 'Format bulan tidak valid.' }
+
+  const firstDate = month + '-01'
+  const [year, monthNumber] = month.split('-').map(Number)
+  const lastDay = new Date(year, monthNumber, 0).getDate()
+  const lastDate = month + '-' + String(lastDay).padStart(2, '0')
+
+  const [
+    { data: ownedClass, error: classError },
+    { data: profile, error: profileError },
+    { data: students, error: studentsError },
+    { data: attendances, error: attendanceError },
+  ] = await Promise.all([
+    supabase
+      .from('classes')
+      .select('id, name, homeroom_teacher')
+      .eq('id', classId)
+      .eq('teacher_id', user.id)
+      .eq('academic_year_id', activeYearId)
+      .maybeSingle(),
+    supabase
+      .from('profiles')
+      .select('full_name, nip, school_id')
+      .eq('id', user.id)
+      .single(),
+    supabase
+      .from('students')
+      .select('id, full_name')
+      .eq('class_id', classId)
+      .eq('teacher_id', user.id)
+      .eq('is_active', true)
+      .order('full_name'),
+    supabase
+      .from('daily_attendance')
+      .select('id, attendance_date, daily_attendance_records(student_id, status)')
+      .eq('teacher_id', user.id)
+      .eq('class_id', classId)
+      .eq('academic_year_id', activeYearId)
+      .gte('attendance_date', firstDate)
+      .lte('attendance_date', lastDate)
+      .order('attendance_date'),
+  ])
+
+  if (classError || profileError || studentsError || attendanceError) {
+    return { error: (classError || profileError || studentsError || attendanceError)?.message || 'Gagal memuat rekap bulanan.' }
+  }
+  if (!ownedClass) return { error: 'Kelas tidak valid.' }
+
+  let school: any = null
+  if (profile?.school_id) {
+    const { data, error } = await supabase
+      .from('schools')
+      .select('name, address, principal_name, principal_nip')
+      .eq('id', profile.school_id)
+      .eq('teacher_id', user.id)
+      .maybeSingle()
+    if (error) return { error: error.message }
+    school = data
+  }
+
+  const dates = (attendances || []).map((item: any) => item.attendance_date)
+  const statusByStudent = new Map<string, Record<string, string>>()
+
+  ;(attendances || []).forEach((attendance: any) => {
+    ;(attendance.daily_attendance_records || []).forEach((record: any) => {
+      const current = statusByStudent.get(record.student_id) || {}
+      current[attendance.attendance_date] = record.status
+      statusByStudent.set(record.student_id, current)
+    })
+  })
+
+  const rows = (students || []).map((student: any, index: number) => {
+    const byDate = statusByStudent.get(student.id) || {}
+    const totals = { H: 0, S: 0, I: 0, A: 0 }
+    dates.forEach((date: string) => {
+      const status = byDate[date]
+      if (status && status in totals) totals[status as keyof typeof totals] += 1
+    })
+    return {
+      no: index + 1,
+      name: student.full_name,
+      statuses: dates.map((date: string) => byDate[date] || ''),
+      totals,
+    }
+  })
+
+  return {
+    month,
+    dates,
+    rows,
+    className: ownedClass.name,
+    homeroomTeacher: ownedClass.homeroom_teacher || profile?.full_name || '',
+    homeroomTeacherNip: profile?.nip || '',
+    schoolName: school?.name || '',
+    schoolAddress: school?.address || '',
+    principalName: school?.principal_name || '',
+    principalNip: school?.principal_nip || '',
+  }
+}
