@@ -72,11 +72,10 @@ export async function getAssessmentScores(assessmentId: string) {
   const [studentsRes, scoresRes] = await Promise.all([
     supabase
       .from('students')
-      .select('id, full_name, student_number')
+      .select('id, full_name')
       .eq('class_id', assessment.class_id)
       .eq('teacher_id', userData.user.id)
       .eq('is_active', true)
-      .order('student_number', { ascending: true, nullsFirst: false })
       .order('full_name'),
     supabase.from('assessment_scores').select('student_id, score, feedback').eq('assessment_id', assessmentId),
   ])
