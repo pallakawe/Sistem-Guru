@@ -148,7 +148,6 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
         nis: String(getValue(row, ["nis"])).trim(),
         nisn: String(getValue(row, ["nisn"])).trim(),
         gender: String(getValue(row, ["l/p", "lp", "jenis kelamin", "gender"])).trim(),
-        student_number: getValue(row, ["no absen", "nomor absen", "no. absen", "absen"]) || "",
         height_cm: getValue(row, ["tinggi badan", "tinggi", "tb", "tinggi cm"]) || "",
         weight_kg: getValue(row, ["berat badan", "berat", "bb", "berat kg"]) || "",
         father_name: String(getValue(row, ["nama ayah", "ayah"])).trim(),
@@ -179,12 +178,12 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
   async function downloadStudentTemplate() {
     const XLSX = await import("xlsx")
     const rows = [
-      ["Nama Lengkap", "NIS", "NISN", "L/P", "No. Absen", "Tinggi Badan", "Berat Badan", "Nama Ayah", "Nama Ibu", "Pekerjaan Ayah", "Pekerjaan Ibu", "Nomor HP Ayah", "Nomor HP Ibu", "Alamat Lengkap"],
-      ["Contoh Siswa", "12345", "0012345678", "L", 1, 145, 38, "Budi", "Siti", "Wiraswasta", "Ibu Rumah Tangga", "081234567890", "081298765432", "Jl. Contoh No. 1"],
+      ["Nama Lengkap", "NIS", "NISN", "L/P", "Tinggi Badan", "Berat Badan", "Nama Ayah", "Nama Ibu", "Pekerjaan Ayah", "Pekerjaan Ibu", "Nomor HP Ayah", "Nomor HP Ibu", "Alamat Lengkap"],
+      ["Contoh Siswa", "12345", "0012345678", "L", 145, 38, "Budi", "Siti", "Wiraswasta", "Ibu Rumah Tangga", "081234567890", "081298765432", "Jl. Contoh No. 1"],
     ]
     const sheet = XLSX.utils.aoa_to_sheet(rows)
     sheet["!cols"] = [
-      { wch: 28 }, { wch: 16 }, { wch: 18 }, { wch: 12 }, { wch: 12 },
+      { wch: 28 }, { wch: 16 }, { wch: 18 }, { wch: 12 },
       { wch: 14 }, { wch: 14 }, { wch: 22 }, { wch: 22 }, { wch: 22 },
       { wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 36 },
     ]
@@ -203,7 +202,6 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
           nis: row.nis,
           nisn: row.nisn,
           gender: row.gender,
-          student_number: row.student_number === "" ? null : Number(row.student_number),
           height_cm: row.height_cm === "" ? null : Number(row.height_cm),
           weight_kg: row.weight_kg === "" ? null : Number(row.weight_kg),
           father_name: row.father_name,
@@ -258,14 +256,13 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
     title: selectedClass ? `Daftar Siswa - ${selectedClass.name}` : "Daftar Siswa",
     fileName: selectedClass ? `daftar-siswa-${selectedClass.name}` : "daftar-siswa",
     subtitle: selectedClass ? `Jumlah siswa: ${students.length}` : undefined,
-    headers: ["No", "NIS", "NISN", "Nama Lengkap", "L/P", "No. Absen", "Tinggi (cm)", "Berat (kg)", "Nama Ayah", "Nama Ibu", "Pekerjaan Ayah", "Pekerjaan Ibu", "HP Ayah", "HP Ibu", "Alamat Lengkap", "Status"],
+    headers: ["No", "NIS", "NISN", "Nama Lengkap", "L/P", "Tinggi Badan (cm)", "Berat Badan (kg)", "Nama Ayah", "Nama Ibu", "Pekerjaan Ayah", "Pekerjaan Ibu", "HP Ayah", "HP Ibu", "Alamat Lengkap", "Status"],
     rows: students.map((s, i) => [
       i + 1,
       s.nis || "-",
       s.nisn || "-",
       s.full_name,
       s.gender || "-",
-      s.student_number || "-",
       s.height_cm || "-",
       s.weight_kg || "-",
       s.father_name || "-",
@@ -374,9 +371,8 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                   <TableHead>NIS/NISN</TableHead>
                   <TableHead>Nama Lengkap</TableHead>
                   <TableHead>L/P</TableHead>
-                  <TableHead>No. Absen</TableHead>
                   <TableHead>Tinggi</TableHead>
-                  <TableHead>Berat</TableHead>
+                  <TableHead>Berat Badan</TableHead>
                   <TableHead>Nama Ayah</TableHead>
                   <TableHead>Nama Ibu</TableHead>
                   <TableHead>Pekerjaan Ayah</TableHead>
@@ -395,7 +391,6 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                     <TableCell className="font-mono text-sm">{s.nis || '-'} / {s.nisn || '-'}</TableCell>
                     <TableCell className="font-medium">{s.full_name}</TableCell>
                     <TableCell>{s.gender || '-'}</TableCell>
-                    <TableCell>{s.student_number || '-'}</TableCell>
                     <TableCell>{s.height_cm ? `${s.height_cm} cm` : '-'}</TableCell>
                     <TableCell>{s.weight_kg ? `${s.weight_kg} kg` : '-'}</TableCell>
                     <TableCell>{s.father_name || '-'}</TableCell>
@@ -446,7 +441,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
             <div className="rounded-xl border bg-muted/30 p-4 text-sm">
               <p className="font-semibold">Format kolom Excel</p>
               <p className="mt-1 text-muted-foreground">
-                Nama Lengkap wajib. Kolom lain opsional termasuk NIS/NISN, L/P, No. Absen, tinggi/berat badan, data orang tua, nomor HP, dan alamat lengkap.
+                Nama Lengkap wajib. Kolom lain opsional termasuk NIS/NISN, L/P, tinggi/berat badan, data orang tua, nomor HP, dan alamat lengkap.
               </p>
               <Button type="button" variant="outline" size="sm" className="mt-3" onClick={downloadStudentTemplate}>
                 <Download className="mr-2 h-4 w-4" /> Download Template Excel
@@ -490,7 +485,6 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                         <TableHead>NIS</TableHead>
                         <TableHead>NISN</TableHead>
                         <TableHead>L/P</TableHead>
-                        <TableHead>No. Absen</TableHead>
                         <TableHead>Tinggi</TableHead>
                         <TableHead>Berat</TableHead>
                         <TableHead>Nama Ayah</TableHead>
@@ -505,7 +499,6 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                           <TableCell>{row.nis || "-"}</TableCell>
                           <TableCell>{row.nisn || "-"}</TableCell>
                           <TableCell>{row.gender || "-"}</TableCell>
-                          <TableCell>{row.student_number || "-"}</TableCell>
                           <TableCell>{row.height_cm || "-"}</TableCell>
                           <TableCell>{row.weight_kg || "-"}</TableCell>
                           <TableCell>{row.father_name || "-"}</TableCell>
@@ -643,21 +636,15 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                   <Input id="nisn" name="nisn" placeholder="NISN" />
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="gender">Jenis Kelamin</Label>
-                  <Select name="gender">
-                    <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="L">Laki-laki</SelectItem>
-                      <SelectItem value="P">Perempuan</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="studentNumber">No. Absen</Label>
-                  <Input id="studentNumber" name="studentNumber" type="number" min={1} placeholder="1" />
-                </div>
+              <div className="grid gap-2">
+                <Label htmlFor="gender">Jenis Kelamin</Label>
+                <Select name="gender">
+                  <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="L">Laki-laki</SelectItem>
+                    <SelectItem value="P">Perempuan</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="grid gap-2">
@@ -752,21 +739,15 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                     <Input id="editNisn" name="nisn" defaultValue={editingStudent.nisn || ''} />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="grid gap-2">
-                    <Label htmlFor="editGender">Jenis Kelamin</Label>
-                    <Select name="gender" defaultValue={editingStudent.gender || ''}>
-                      <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="L">Laki-laki</SelectItem>
-                        <SelectItem value="P">Perempuan</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="editStudentNumber">No. Absen</Label>
-                    <Input id="editStudentNumber" name="studentNumber" type="number" defaultValue={editingStudent.student_number || ''} />
-                  </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="editGender">Jenis Kelamin</Label>
+                  <Select name="gender" defaultValue={editingStudent.gender || ''}>
+                    <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="L">Laki-laki</SelectItem>
+                      <SelectItem value="P">Perempuan</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
