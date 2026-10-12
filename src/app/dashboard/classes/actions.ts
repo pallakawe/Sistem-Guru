@@ -32,10 +32,9 @@ export async function getStudentsByClass(classId: string) {
 
   const { data, error } = await supabase
     .from('students')
-    .select('id, full_name, nis, nisn, gender, student_number, height_cm, weight_kg, father_name, mother_name, father_job, mother_job, father_phone, mother_phone, full_address, is_active')
+    .select('id, full_name, nis, nisn, gender, height_cm, weight_kg, father_name, mother_name, father_job, mother_job, father_phone, mother_phone, full_address, is_active')
     .eq('class_id', classId)
     .eq('teacher_id', userData.user.id)
-    .order('student_number', { ascending: true, nullsFirst: false })
     .order('full_name', { ascending: true })
   if (error) return { error: error.message }
   return { data: data || [] }
@@ -76,7 +75,6 @@ export async function addStudent(formData: FormData) {
   const nis = formData.get('nis') as string
   const nisn = formData.get('nisn') as string
   const gender = formData.get('gender') as string
-  const studentNumber = parseInt(formData.get('studentNumber') as string) || null
   const heightCm = Number(formData.get('heightCm') || 0) || null
   const weightKg = Number(formData.get('weightKg') || 0) || null
   const fatherName = String(formData.get('fatherName') || '').trim()
@@ -104,7 +102,7 @@ export async function addStudent(formData: FormData) {
 
   const { error } = await supabase.from('students').insert({
     class_id: classId, full_name: fullName, nis, nisn, gender,
-    student_number: studentNumber, height_cm: heightCm, weight_kg: weightKg,
+    height_cm: heightCm, weight_kg: weightKg,
     father_name: fatherName || null, mother_name: motherName || null,
     father_job: fatherJob || null, mother_job: motherJob || null,
     father_phone: fatherPhone || null, mother_phone: motherPhone || null,
@@ -125,7 +123,6 @@ export async function updateStudent(studentId: string, formData: FormData) {
   const nis = formData.get('nis') as string
   const nisn = formData.get('nisn') as string
   const gender = formData.get('gender') as string
-  const studentNumber = parseInt(formData.get('studentNumber') as string) || null
   const heightCm = Number(formData.get('heightCm') || 0) || null
   const weightKg = Number(formData.get('weightKg') || 0) || null
   const fatherName = String(formData.get('fatherName') || '').trim()
@@ -273,7 +270,6 @@ type ImportedStudent = {
   nis?: string
   nisn?: string
   gender?: string
-  student_number?: number | null
   height_cm?: number | null
   weight_kg?: number | null
   father_name?: string
@@ -322,9 +318,6 @@ export async function importStudents(classId: string, rows: ImportedStudent[]) {
     const gender = rawGender === 'LAKI-LAKI' || rawGender === 'LAKI LAKI' || rawGender === 'L' ? 'L'
       : rawGender === 'PEREMPUAN' || rawGender === 'P' ? 'P'
       : ''
-    const number = row.student_number === null || row.student_number === undefined
-      ? null
-      : Number(row.student_number)
     const heightCm = row.height_cm === null || row.height_cm === undefined ? null : Number(row.height_cm)
     const weightKg = row.weight_kg === null || row.weight_kg === undefined ? null : Number(row.weight_kg)
 
@@ -334,7 +327,6 @@ export async function importStudents(classId: string, rows: ImportedStudent[]) {
       nis,
       nisn,
       gender,
-      student_number: number,
       height_cm: heightCm,
       weight_kg: weightKg,
       father_name: String(row.father_name || '').trim(),
@@ -351,9 +343,6 @@ export async function importStudents(classId: string, rows: ImportedStudent[]) {
   normalized.forEach((row) => {
     if (!row.full_name) invalidRows.push(`Baris ${row.rowNumber}: nama siswa kosong.`)
     if (row.gender && !['L', 'P'].includes(row.gender)) invalidRows.push(`Baris ${row.rowNumber}: jenis kelamin tidak valid.`)
-    if (row.student_number !== null && (!Number.isInteger(row.student_number) || row.student_number < 1)) {
-      invalidRows.push(`Baris ${row.rowNumber}: nomor absen harus bilangan bulat positif.`)
-    }
     if (row.height_cm !== null && (!Number.isFinite(row.height_cm) || row.height_cm <= 0)) {
       invalidRows.push(`Baris ${row.rowNumber}: tinggi badan tidak valid.`)
     }
@@ -417,7 +406,6 @@ export async function importStudents(classId: string, rows: ImportedStudent[]) {
       nis: row.nis || null,
       nisn: row.nisn || null,
       gender: row.gender || null,
-      student_number: row.student_number,
       height_cm: row.height_cm,
       weight_kg: row.weight_kg,
       father_name: row.father_name || null,
