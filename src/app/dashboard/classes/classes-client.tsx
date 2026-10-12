@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Users, Loader2, Pencil, Trash2, ChevronLeft, FileSpreadsheet, FileDown, Upload, Download } from "lucide-react"
@@ -148,6 +149,15 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
         nisn: String(getValue(row, ["nisn"])).trim(),
         gender: String(getValue(row, ["l/p", "lp", "jenis kelamin", "gender"])).trim(),
         student_number: getValue(row, ["no absen", "nomor absen", "no. absen", "absen"]) || "",
+        height_cm: getValue(row, ["tinggi badan", "tinggi", "tb", "tinggi cm"]) || "",
+        weight_kg: getValue(row, ["berat badan", "berat", "bb", "berat kg"]) || "",
+        father_name: String(getValue(row, ["nama ayah", "ayah"])).trim(),
+        mother_name: String(getValue(row, ["nama ibu", "ibu"])).trim(),
+        father_job: String(getValue(row, ["pekerjaan ayah", "kerja ayah"])).trim(),
+        mother_job: String(getValue(row, ["pekerjaan ibu", "kerja ibu"])).trim(),
+        father_phone: String(getValue(row, ["nomor hp ayah", "no hp ayah", "hp ayah", "telepon ayah"])).trim(),
+        mother_phone: String(getValue(row, ["nomor hp ibu", "no hp ibu", "hp ibu", "telepon ibu"])).trim(),
+        full_address: String(getValue(row, ["alamat lengkap", "alamat"])).trim(),
       })).filter(row => row.full_name || row.nis || row.nisn)
 
       if (parsed.length === 0) {
@@ -169,11 +179,15 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
   async function downloadStudentTemplate() {
     const XLSX = await import("xlsx")
     const rows = [
-      ["Nama Lengkap", "NIS", "NISN", "L/P", "No. Absen"],
-      ["Contoh Siswa", "12345", "0012345678", "L", 1],
+      ["Nama Lengkap", "NIS", "NISN", "L/P", "No. Absen", "Tinggi Badan", "Berat Badan", "Nama Ayah", "Nama Ibu", "Pekerjaan Ayah", "Pekerjaan Ibu", "Nomor HP Ayah", "Nomor HP Ibu", "Alamat Lengkap"],
+      ["Contoh Siswa", "12345", "0012345678", "L", 1, 145, 38, "Budi", "Siti", "Wiraswasta", "Ibu Rumah Tangga", "081234567890", "081298765432", "Jl. Contoh No. 1"],
     ]
     const sheet = XLSX.utils.aoa_to_sheet(rows)
-    sheet["!cols"] = [{ wch: 28 }, { wch: 16 }, { wch: 18 }, { wch: 12 }, { wch: 12 }]
+    sheet["!cols"] = [
+      { wch: 28 }, { wch: 16 }, { wch: 18 }, { wch: 12 }, { wch: 12 },
+      { wch: 14 }, { wch: 14 }, { wch: 22 }, { wch: 22 }, { wch: 22 },
+      { wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 36 },
+    ]
     const workbook = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(workbook, sheet, "Siswa")
     XLSX.writeFile(workbook, "template-import-siswa.xlsx")
@@ -190,6 +204,15 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
           nisn: row.nisn,
           gender: row.gender,
           student_number: row.student_number === "" ? null : Number(row.student_number),
+          height_cm: row.height_cm === "" ? null : Number(row.height_cm),
+          weight_kg: row.weight_kg === "" ? null : Number(row.weight_kg),
+          father_name: row.father_name,
+          mother_name: row.mother_name,
+          father_job: row.father_job,
+          mother_job: row.mother_job,
+          father_phone: row.father_phone,
+          mother_phone: row.mother_phone,
+          full_address: row.full_address,
         }))
       )
 
@@ -235,7 +258,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
     title: selectedClass ? `Daftar Siswa - ${selectedClass.name}` : "Daftar Siswa",
     fileName: selectedClass ? `daftar-siswa-${selectedClass.name}` : "daftar-siswa",
     subtitle: selectedClass ? `Jumlah siswa: ${students.length}` : undefined,
-    headers: ["No", "NIS", "NISN", "Nama Lengkap", "L/P", "No. Absen", "Status"],
+    headers: ["No", "NIS", "NISN", "Nama Lengkap", "L/P", "No. Absen", "Tinggi (cm)", "Berat (kg)", "Nama Ayah", "Nama Ibu", "Pekerjaan Ayah", "Pekerjaan Ibu", "HP Ayah", "HP Ibu", "Alamat Lengkap", "Status"],
     rows: students.map((s, i) => [
       i + 1,
       s.nis || "-",
@@ -243,6 +266,15 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
       s.full_name,
       s.gender || "-",
       s.student_number || "-",
+      s.height_cm || "-",
+      s.weight_kg || "-",
+      s.father_name || "-",
+      s.mother_name || "-",
+      s.father_job || "-",
+      s.mother_job || "-",
+      s.father_phone || "-",
+      s.mother_phone || "-",
+      s.full_address || "-",
       s.is_active ? "Aktif" : "Tidak Aktif",
     ]),
   }
@@ -342,6 +374,16 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                   <TableHead>NIS/NISN</TableHead>
                   <TableHead>Nama Lengkap</TableHead>
                   <TableHead>L/P</TableHead>
+                  <TableHead>No. Absen</TableHead>
+                  <TableHead>Tinggi</TableHead>
+                  <TableHead>Berat</TableHead>
+                  <TableHead>Nama Ayah</TableHead>
+                  <TableHead>Nama Ibu</TableHead>
+                  <TableHead>Pekerjaan Ayah</TableHead>
+                  <TableHead>Pekerjaan Ibu</TableHead>
+                  <TableHead>HP Ayah</TableHead>
+                  <TableHead>HP Ibu</TableHead>
+                  <TableHead className="min-w-56">Alamat Lengkap</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
@@ -353,6 +395,16 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                     <TableCell className="font-mono text-sm">{s.nis || '-'} / {s.nisn || '-'}</TableCell>
                     <TableCell className="font-medium">{s.full_name}</TableCell>
                     <TableCell>{s.gender || '-'}</TableCell>
+                    <TableCell>{s.student_number || '-'}</TableCell>
+                    <TableCell>{s.height_cm ? `${s.height_cm} cm` : '-'}</TableCell>
+                    <TableCell>{s.weight_kg ? `${s.weight_kg} kg` : '-'}</TableCell>
+                    <TableCell>{s.father_name || '-'}</TableCell>
+                    <TableCell>{s.mother_name || '-'}</TableCell>
+                    <TableCell>{s.father_job || '-'}</TableCell>
+                    <TableCell>{s.mother_job || '-'}</TableCell>
+                    <TableCell>{s.father_phone || '-'}</TableCell>
+                    <TableCell>{s.mother_phone || '-'}</TableCell>
+                    <TableCell className="max-w-72 whitespace-normal">{s.full_address || '-'}</TableCell>
                     <TableCell><Badge variant={s.is_active ? 'default' : 'secondary'}>{s.is_active ? 'Aktif' : 'Tidak Aktif'}</Badge></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
@@ -394,7 +446,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
             <div className="rounded-xl border bg-muted/30 p-4 text-sm">
               <p className="font-semibold">Format kolom Excel</p>
               <p className="mt-1 text-muted-foreground">
-                Nama Lengkap wajib. Kolom lain opsional: NIS, NISN, L/P, dan No. Absen.
+                Nama Lengkap wajib. Kolom lain opsional termasuk NIS/NISN, L/P, No. Absen, tinggi/berat badan, data orang tua, nomor HP, dan alamat lengkap.
               </p>
               <Button type="button" variant="outline" size="sm" className="mt-3" onClick={downloadStudentTemplate}>
                 <Download className="mr-2 h-4 w-4" /> Download Template Excel
@@ -439,6 +491,10 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                         <TableHead>NISN</TableHead>
                         <TableHead>L/P</TableHead>
                         <TableHead>No. Absen</TableHead>
+                        <TableHead>Tinggi</TableHead>
+                        <TableHead>Berat</TableHead>
+                        <TableHead>Nama Ayah</TableHead>
+                        <TableHead>Nama Ibu</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -450,6 +506,10 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                           <TableCell>{row.nisn || "-"}</TableCell>
                           <TableCell>{row.gender || "-"}</TableCell>
                           <TableCell>{row.student_number || "-"}</TableCell>
+                          <TableCell>{row.height_cm || "-"}</TableCell>
+                          <TableCell>{row.weight_kg || "-"}</TableCell>
+                          <TableCell>{row.father_name || "-"}</TableCell>
+                          <TableCell>{row.mother_name || "-"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -476,7 +536,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
 
       {/* Add Class Dialog */}
       <Dialog open={openAddClass} onOpenChange={setOpenAddClass}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[720px]">
           <form action={handleAddClass}>
             <DialogHeader><DialogTitle>Tambah Kelas Baru</DialogTitle><DialogDescription>Isi data kelas yang ingin Anda buat.</DialogDescription></DialogHeader>
             <div className="grid gap-4 py-4">
@@ -509,7 +569,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
 
       {/* Edit Class Dialog */}
       <Dialog open={!!editingClass} onOpenChange={(open) => { if (!open && !isPending) setEditingClass(null) }}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[720px]">
           <form key={editingClass?.id} action={handleEditClass}>
             <DialogHeader>
               <DialogTitle>Edit Kelas</DialogTitle>
@@ -546,7 +606,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
 
       {/* Delete Class Confirmation */}
       <Dialog open={!!classToDelete} onOpenChange={(open) => { if (!open && !isPending) setClassToDelete(null) }}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[720px]">
           <DialogHeader>
             <DialogTitle>Hapus Kelas?</DialogTitle>
             <DialogDescription>
@@ -565,7 +625,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
 
       {/* Add Student Dialog */}
       <Dialog open={openAddStudent} onOpenChange={setOpenAddStudent}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[720px]">
           <form action={handleAddStudent}>
             <DialogHeader><DialogTitle>Tambah Siswa Baru</DialogTitle><DialogDescription>Tambahkan siswa ke {selectedClass?.name}.</DialogDescription></DialogHeader>
             <div className="grid gap-4 py-4">
@@ -599,6 +659,50 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                   <Input id="studentNumber" name="studentNumber" type="number" min={1} placeholder="1" />
                 </div>
               </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="heightCm">Tinggi Badan (cm)</Label>
+                  <Input id="heightCm" name="heightCm" type="number" min="1" step="0.1" placeholder="145" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="weightKg">Berat Badan (kg)</Label>
+                  <Input id="weightKg" name="weightKg" type="number" min="1" step="0.1" placeholder="38" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="fatherName">Nama Ayah</Label>
+                  <Input id="fatherName" name="fatherName" placeholder="Nama ayah" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="motherName">Nama Ibu</Label>
+                  <Input id="motherName" name="motherName" placeholder="Nama ibu" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="fatherJob">Pekerjaan Ayah</Label>
+                  <Input id="fatherJob" name="fatherJob" placeholder="Pekerjaan ayah" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="motherJob">Pekerjaan Ibu</Label>
+                  <Input id="motherJob" name="motherJob" placeholder="Pekerjaan ibu" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="fatherPhone">Nomor HP Ayah</Label>
+                  <Input id="fatherPhone" name="fatherPhone" inputMode="tel" placeholder="08xxxxxxxxxx" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="motherPhone">Nomor HP Ibu</Label>
+                  <Input id="motherPhone" name="motherPhone" inputMode="tel" placeholder="08xxxxxxxxxx" />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="fullAddress">Alamat Lengkap</Label>
+                <Textarea id="fullAddress" name="fullAddress" placeholder="Alamat lengkap siswa..." className="min-h-24" />
+              </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpenAddStudent(false)}>Batal</Button>
@@ -610,7 +714,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
 
       {/* Delete Student Dialog */}
       <Dialog open={!!studentToDelete} onOpenChange={(open) => { if (!open && !isPending) setStudentToDelete(null) }}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[720px]">
           <DialogHeader>
             <DialogTitle>Hapus Siswa?</DialogTitle>
             <DialogDescription>
@@ -629,7 +733,7 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
 
       {/* Edit Student Dialog */}
       <Dialog open={openEditStudent} onOpenChange={(o) => { if (!o) { setOpenEditStudent(false); setEditingStudent(null) } }}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[720px]">
           <form action={handleUpdateStudent}>
             <DialogHeader><DialogTitle>Edit Data Siswa</DialogTitle><DialogDescription>Ubah data siswa di bawah ini.</DialogDescription></DialogHeader>
             {editingStudent && (
@@ -663,6 +767,32 @@ export default function ClassesClient({ initialClasses }: { initialClasses: any[
                     <Label htmlFor="editStudentNumber">No. Absen</Label>
                     <Input id="editStudentNumber" name="studentNumber" type="number" defaultValue={editingStudent.student_number || ''} />
                   </div>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="editHeightCm">Tinggi Badan (cm)</Label>
+                    <Input id="editHeightCm" name="heightCm" type="number" min="1" step="0.1" defaultValue={editingStudent.height_cm || ''} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="editWeightKg">Berat Badan (kg)</Label>
+                    <Input id="editWeightKg" name="weightKg" type="number" min="1" step="0.1" defaultValue={editingStudent.weight_kg || ''} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2"><Label>Nama Ayah</Label><Input name="fatherName" defaultValue={editingStudent.father_name || ''} /></div>
+                  <div className="grid gap-2"><Label>Nama Ibu</Label><Input name="motherName" defaultValue={editingStudent.mother_name || ''} /></div>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2"><Label>Pekerjaan Ayah</Label><Input name="fatherJob" defaultValue={editingStudent.father_job || ''} /></div>
+                  <div className="grid gap-2"><Label>Pekerjaan Ibu</Label><Input name="motherJob" defaultValue={editingStudent.mother_job || ''} /></div>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2"><Label>Nomor HP Ayah</Label><Input name="fatherPhone" inputMode="tel" defaultValue={editingStudent.father_phone || ''} /></div>
+                  <div className="grid gap-2"><Label>Nomor HP Ibu</Label><Input name="motherPhone" inputMode="tel" defaultValue={editingStudent.mother_phone || ''} /></div>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Alamat Lengkap</Label>
+                  <Textarea name="fullAddress" defaultValue={editingStudent.full_address || ''} className="min-h-24" />
                 </div>
               </div>
             )}
