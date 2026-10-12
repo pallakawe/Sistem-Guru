@@ -135,7 +135,7 @@ export async function updateStudent(studentId: string, formData: FormData) {
 
   const { error } = await supabase.from('students')
     .update({
-      full_name: fullName, nis, nisn, gender, student_number: studentNumber,
+      full_name: fullName, nis, nisn, gender,
       height_cm: heightCm, weight_kg: weightKg,
       father_name: fatherName || null, mother_name: motherName || null,
       father_job: fatherJob || null, mother_job: motherJob || null,
