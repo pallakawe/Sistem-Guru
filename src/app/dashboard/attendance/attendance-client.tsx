@@ -12,13 +12,6 @@ import { getDailyAttendance, getMonthlyAttendanceSummary, getMonthlyAttendanceRe
 import { useToast } from "@/hooks/use-toast"
 import { exportMonthlyAttendanceToExcel, exportMonthlyAttendanceToPdf } from "@/lib/export-data"
 
-const STATUS_LABELS: Record<string, string> = {
-  H: "Hadir",
-  S: "Sakit",
-  I: "Izin",
-  A: "Alpa",
-}
-
 function monthKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
 }
@@ -175,7 +168,6 @@ export default function AttendanceClient({ classes }: { classes: any[] }) {
     })
   }
 
-  const selectedSummary = summaryMap.get(selectedDate)
   const totals = students.reduce(
     (result, student) => {
       result[student.status as "H" | "S" | "I" | "A"] += 1
