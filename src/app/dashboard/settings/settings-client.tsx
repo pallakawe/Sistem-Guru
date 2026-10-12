@@ -80,7 +80,7 @@ export default function SettingsClient({ profile, school, academicYears, subject
   }
 
   return (
-    <div className="flex max-w-2xl flex-col gap-4 sm:gap-6">
+    <div className="flex max-w-4xl flex-col gap-4 sm:gap-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Pengaturan</h1>
         <p className="text-muted-foreground">Kelola profil dan preferensi akun Anda.</p>
@@ -106,33 +106,187 @@ export default function SettingsClient({ profile, school, academicYears, subject
           <Separator />
 
           <form action={handleSaveProfile}>
-            <div className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="fullName">Nama Lengkap</Label>
-                <Input id="fullName" name="fullName" defaultValue={profile.full_name || ""} placeholder="Nama lengkap Anda" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid gap-6">
+              <section className="grid gap-4">
+                <div>
+                  <h3 className="font-semibold">Data Pribadi</h3>
+                  <p className="text-sm text-muted-foreground">Identitas dan informasi dasar guru.</p>
+                </div>
+
                 <div className="grid gap-2">
-                  <Label htmlFor="nip">NIP</Label>
-                  <Input id="nip" name="nip" defaultValue={profile.nip || ""} placeholder="19800101 200501 1 001" />
+                  <Label htmlFor="fullName">Nama Lengkap</Label>
+                  <Input id="fullName" name="fullName" defaultValue={profile.full_name || ""} placeholder="Nama lengkap Anda" />
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="birthPlace">Tempat Lahir</Label>
+                    <Input id="birthPlace" name="birthPlace" defaultValue={profile.birth_place || ""} placeholder="Contoh: Palu" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="birthDate">Tanggal Lahir</Label>
+                    <Input id="birthDate" name="birthDate" type="date" defaultValue={profile.birth_date || ""} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="gender">Jenis Kelamin</Label>
+                    <Select name="gender" defaultValue={profile.gender || ""}>
+                      <SelectTrigger><SelectValue placeholder="Pilih jenis kelamin" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="L">Laki-laki</SelectItem>
+                        <SelectItem value="P">Perempuan</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="religion">Agama</Label>
+                    <Input id="religion" name="religion" defaultValue={profile.religion || ""} placeholder="Contoh: Islam" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="maritalStatus">Status</Label>
+                    <Select name="maritalStatus" defaultValue={profile.marital_status || ""}>
+                      <SelectTrigger><SelectValue placeholder="Pilih status" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Belum Menikah">Belum Menikah</SelectItem>
+                        <SelectItem value="Menikah">Menikah</SelectItem>
+                        <SelectItem value="Cerai">Cerai</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="position">Posisi / Jabatan</Label>
+                    <Input id="position" name="position" defaultValue={profile.position || ""} placeholder="Contoh: Guru Kelas" />
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="address">Alamat Lengkap</Label>
+                  <Input id="address" name="address" defaultValue={profile.address || ""} placeholder="Alamat tempat tinggal" />
+                </div>
+              </section>
+
+              <Separator />
+
+              <section className="grid gap-4">
+                <div>
+                  <h3 className="font-semibold">Identitas Kepegawaian</h3>
+                  <p className="text-sm text-muted-foreground">Data administrasi guru.</p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="nip">NIP</Label>
+                    <Input id="nip" name="nip" defaultValue={profile.nip || ""} placeholder="19800101 200501 1 001" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="nuptk">NUPTK</Label>
+                    <Input id="nuptk" name="nuptk" defaultValue={profile.nuptk || ""} placeholder="1234567890123456" />
+                  </div>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="nuptk">NUPTK</Label>
-                  <Input id="nuptk" name="nuptk" defaultValue={profile.nuptk || ""} placeholder="1234567890123456" />
+                  <Label htmlFor="subjectSpecialty">Bidang / Mata Pelajaran Utama</Label>
+                  <Input id="subjectSpecialty" name="subjectSpecialty" defaultValue={profile.subject_specialty || ""} placeholder="Contoh: Matematika" />
                 </div>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="phone">Nomor HP</Label>
-                <Input id="phone" name="phone" type="tel" defaultValue={profile.phone || ""} placeholder="08123456789" />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="subjectSpecialty">Mata Pelajaran Utama</Label>
-                <Input id="subjectSpecialty" name="subjectSpecialty" defaultValue={profile.subject_specialty || ""} placeholder="Contoh: Matematika, IPA" />
-              </div>
+              </section>
+
+              <Separator />
+
+              <section className="grid gap-4">
+                <div>
+                  <h3 className="font-semibold">Kontak</h3>
+                  <p className="text-sm text-muted-foreground">Informasi yang dapat digunakan untuk menghubungi guru.</p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="phone">Nomor HP</Label>
+                    <Input id="phone" name="phone" type="tel" defaultValue={profile.phone || ""} placeholder="08123456789" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Email</Label>
+                    <Input value={userEmail} disabled />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="socialMedia">Media Sosial</Label>
+                  <Input id="socialMedia" name="socialMedia" defaultValue={profile.social_media || ""} placeholder="@username atau link profil" />
+                </div>
+              </section>
+
+              <Separator />
+
+              <section className="grid gap-4">
+                <div>
+                  <h3 className="font-semibold">Pendidikan Terakhir</h3>
+                  <p className="text-sm text-muted-foreground">Riwayat pendidikan terakhir guru.</p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="educationLevel">Jenjang</Label>
+                    <Input id="educationLevel" name="educationLevel" defaultValue={profile.education_level || ""} placeholder="Contoh: S1" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="graduationYear">Tahun Lulus</Label>
+                    <Input id="graduationYear" name="graduationYear" type="number" min="1950" max="2100" defaultValue={profile.graduation_year || ""} placeholder="2020" />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="educationInstitution">Institusi</Label>
+                  <Input id="educationInstitution" name="educationInstitution" defaultValue={profile.education_institution || ""} placeholder="Nama universitas / institusi" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="educationMajor">Jurusan</Label>
+                  <Input id="educationMajor" name="educationMajor" defaultValue={profile.education_major || ""} placeholder="Contoh: Pendidikan Guru Sekolah Dasar" />
+                </div>
+              </section>
+
+              <Separator />
+
+              <section className="grid gap-4">
+                <div>
+                  <h3 className="font-semibold">Pengalaman Mengajar</h3>
+                  <p className="text-sm text-muted-foreground">Informasi pengalaman profesional guru.</p>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="previousSchool">Sekolah Sebelumnya</Label>
+                  <Input id="previousSchool" name="previousSchool" defaultValue={profile.previous_school || ""} placeholder="Nama sekolah sebelumnya" />
+                </div>
+                <div className="grid gap-2 sm:max-w-xs">
+                  <Label htmlFor="teachingYears">Lama Mengajar (tahun)</Label>
+                  <Input id="teachingYears" name="teachingYears" type="number" min="0" step="0.5" defaultValue={profile.teaching_years || ""} placeholder="5" />
+                </div>
+              </section>
+
+              <Separator />
+
+              <section className="grid gap-4">
+                <div>
+                  <h3 className="font-semibold">Tentang Guru</h3>
+                  <p className="text-sm text-muted-foreground">Informasi tambahan untuk melengkapi profil.</p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="hobbies">Hobi</Label>
+                    <Input id="hobbies" name="hobbies" defaultValue={profile.hobbies || ""} placeholder="Contoh: Membaca, berkebun" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="favoriteActivity">Aktivitas Favorit</Label>
+                    <Input id="favoriteActivity" name="favoriteActivity" defaultValue={profile.favorite_activity || ""} placeholder="Contoh: Menulis" />
+                  </div>
+                </div>
+                <div className="grid gap-2 sm:max-w-md">
+                  <Label htmlFor="favoriteDrink">Minuman Favorit</Label>
+                  <Input id="favoriteDrink" name="favoriteDrink" defaultValue={profile.favorite_drink || ""} placeholder="Contoh: Kopi" />
+                </div>
+              </section>
             </div>
-            <Button className="w-full sm:w-auto mt-4" type="submit" disabled={isPending}>
+
+            <Button className="mt-6 w-full sm:w-auto" type="submit" disabled={isPending}>
               {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              Simpan Profil
+              Simpan Biodata Guru
             </Button>
           </form>
         </CardContent>
