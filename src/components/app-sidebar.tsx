@@ -13,6 +13,7 @@ import {
   Settings,
   Users,
   CheckSquare,
+  Archive,
   LogOut,
 } from "lucide-react"
 
@@ -78,6 +79,11 @@ const data = {
       title: "Dokumen",
       url: "/dashboard/documents",
       icon: FileText,
+    },
+    {
+      title: "Arsip Tahun Ajaran",
+      url: "/dashboard/archive",
+      icon: Archive,
     },
     {
       title: "Pengaturan",
