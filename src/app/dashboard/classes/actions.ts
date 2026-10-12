@@ -228,14 +228,21 @@ export async function deleteStudent(studentId: string) {
   if (studentError) return { error: studentError.message }
   if (!student) return { error: 'Siswa tidak ditemukan.' }
 
-  const [{ count: attendanceCount, error: attendanceError }, { count: scoreCount, error: scoreError }] = await Promise.all([
+  const [
+    { count: attendanceCount, error: attendanceError },
+    { count: dailyAttendanceCount, error: dailyAttendanceError },
+    { count: scoreCount, error: scoreError },
+  ] = await Promise.all([
     supabase.from('attendance_records').select('id', { count: 'exact', head: true }).eq('student_id', studentId),
+    supabase.from('daily_attendance_records').select('id', { count: 'exact', head: true }).eq('student_id', studentId),
     supabase.from('assessment_scores').select('id', { count: 'exact', head: true }).eq('student_id', studentId),
   ])
 
-  if (attendanceError || scoreError) return { error: (attendanceError || scoreError)?.message || 'Gagal memeriksa data siswa.' }
+  if (attendanceError || dailyAttendanceError || scoreError) {
+    return { error: (attendanceError || dailyAttendanceError || scoreError)?.message || 'Gagal memeriksa data siswa.' }
+  }
 
-  if ((attendanceCount || 0) > 0 || (scoreCount || 0) > 0) {
+  if ((attendanceCount || 0) > 0 || (dailyAttendanceCount || 0) > 0 || (scoreCount || 0) > 0) {
     const { error: deactivateError } = await supabase
       .from('students')
       .update({ is_active: false })
