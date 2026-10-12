@@ -309,6 +309,16 @@ export default function SettingsClient({ profile, school, academicYears, subject
                 <Label htmlFor="schoolAddress">Alamat Sekolah</Label>
                 <Input id="schoolAddress" name="schoolAddress" defaultValue={school?.address || ""} placeholder="Jl. Pendidikan No. 1, Kota" />
               </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="principalName">Nama Kepala Sekolah</Label>
+                  <Input id="principalName" name="principalName" defaultValue={school?.principal_name || ""} placeholder="Nama kepala sekolah" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="principalNip">NIP Kepala Sekolah</Label>
+                  <Input id="principalNip" name="principalNip" defaultValue={school?.principal_nip || ""} placeholder="NIP kepala sekolah" />
+                </div>
+              </div>
             </div>
             <Button className="w-full sm:w-auto mt-4" type="submit" disabled={isPending}>
               {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
