@@ -109,11 +109,10 @@ export async function getDailyAttendance(classId: string, date: string) {
   const [{ data: students, error: studentsError }, { data: attendance, error: attendanceError }] = await Promise.all([
     supabase
       .from('students')
-      .select('id, full_name, student_number')
+      .select('id, full_name')
       .eq('class_id', classId)
       .eq('teacher_id', user.id)
       .eq('is_active', true)
-      .order('student_number', { ascending: true, nullsFirst: false })
       .order('full_name'),
     supabase
       .from('daily_attendance')
