@@ -78,7 +78,7 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
       return
     }
     setJournalToDelete(null)
-    toast({ title: "Dihapus", description: "Jurnal, pertemuan, dan absensi terkait telah dihapus." })
+    toast({ title: "Dihapus", description: "Jurnal dan data pertemuan berhasil dihapus." })
     window.location.reload()
   }
 
@@ -219,10 +219,10 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
                       <Badge variant="outline">{j.meetings?.classes?.name}</Badge>
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => setViewJournal(j)}><Eye className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="sm" onClick={() => setEditingJournal(j)}><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setJournalToDelete(j)}><Trash2 className="h-4 w-4" /></Button>
+                  <div className="hidden shrink-0 gap-1 sm:flex">
+                    <Button variant="ghost" size="sm" onClick={() => setViewJournal(j)} title="Lihat jurnal"><Eye className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => setEditingJournal(j)} title="Edit jurnal"><Pencil className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setJournalToDelete(j)} title="Hapus jurnal"><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 </div>
               </CardHeader>
@@ -233,6 +233,23 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
                 </div>
                 <p className="text-sm mt-3 line-clamp-2 text-muted-foreground">{j.learning_objectives}</p>
                 {j.method && <div className="mt-2"><Badge variant="outline" className="text-xs">{j.method}</Badge></div>}
+
+                <div className="mt-4 grid grid-cols-3 gap-2 border-t pt-3 sm:hidden">
+                  <Button variant="outline" size="sm" onClick={() => setViewJournal(j)}>
+                    <Eye className="mr-1 h-4 w-4" /> Lihat
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setEditingJournal(j)}>
+                    <Pencil className="mr-1 h-4 w-4" /> Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-destructive/30 text-destructive hover:text-destructive"
+                    onClick={() => setJournalToDelete(j)}
+                  >
+                    <Trash2 className="mr-1 h-4 w-4" /> Hapus
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))
@@ -277,7 +294,7 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
 
       <Dialog open={!!journalToDelete} onOpenChange={(value) => !value && setJournalToDelete(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Hapus Jurnal?</DialogTitle><DialogDescription>Pertemuan dan absensi terkait ikut dihapus. Bahan ajar tetap tersimpan tetapi tidak lagi terhubung ke pertemuan ini.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Hapus Jurnal?</DialogTitle><DialogDescription>Jurnal dan data pertemuan ini akan dihapus. Absensi harian tidak ikut terhapus karena sudah terpisah dari jurnal. Bahan ajar tetap tersimpan tetapi tidak lagi terhubung ke pertemuan ini.</DialogDescription></DialogHeader>
           <DialogFooter><Button variant="outline" onClick={() => setJournalToDelete(null)}>Batal</Button><Button variant="destructive" onClick={onDelete} disabled={isLoading}>Hapus</Button></DialogFooter>
         </DialogContent>
       </Dialog>
