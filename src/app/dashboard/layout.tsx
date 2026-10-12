@@ -4,6 +4,7 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function DashboardLayout({
   children,
@@ -21,6 +22,7 @@ export default function DashboardLayout({
             <p className="truncate font-accent text-sm font-semibold text-foreground">Sistem Guru</p>
             <p className="hidden truncate text-xs text-muted-foreground sm:block">Administrasi pembelajaran dalam satu tempat</p>
           </div>
+          <ThemeToggle />
         </header>
         <main className="flex-1 px-2.5 py-3 sm:px-5 sm:py-5 lg:px-8 lg:py-7">
           <div className="mx-auto w-full max-w-[1500px]">

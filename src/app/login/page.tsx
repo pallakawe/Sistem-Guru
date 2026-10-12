@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AlertCircle } from 'lucide-react'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { login } from './actions'
 
 export default function LoginPage() {
@@ -38,6 +39,9 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
+      <div className="absolute right-4 top-4 z-30">
+        <ThemeToggle />
+      </div>
       <Image
         src="/login-background.png"
         alt=""
@@ -99,7 +103,7 @@ export default function LoginPage() {
       {/* Right Panel — Login only */}
       <div className="relative z-10 flex items-center justify-center p-6 sm:p-8">
         <div className="absolute inset-0 bg-transparent" />
-        <div className="relative mx-auto w-full max-w-sm space-y-6 rounded-2xl border border-white/45 bg-white/72 p-6 shadow-2xl backdrop-blur-sm sm:bg-white/78 sm:p-8">
+        <div className="relative mx-auto w-full max-w-sm space-y-6 rounded-2xl border border-white/45 bg-white/72 p-6 text-slate-900 shadow-2xl backdrop-blur-sm sm:bg-white/78 sm:p-8 dark:border-border/80 dark:bg-card/90 dark:text-card-foreground">
           {/* Mobile logo */}
           <div className="flex items-center justify-center gap-2 lg:hidden">
             <Image

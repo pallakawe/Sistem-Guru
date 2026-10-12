@@ -48,8 +48,24 @@ export default function RootLayout({
   return (
     <html
       lang="id"
+      suppressHydrationWarning
       className={`${inter.variable} ${manrope.variable} ${plusJakarta.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const savedTheme = localStorage.getItem("sistem-guru-theme");
+                const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+                const useDark = savedTheme === "dark" || (!savedTheme && prefersDark);
+                document.documentElement.classList.toggle("dark", useDark);
+                document.documentElement.style.colorScheme = useDark ? "dark" : "light";
+              } catch (_) {}
+            `,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <TooltipProvider>
           {children}
