@@ -100,13 +100,12 @@ export async function addStudent(formData: FormData) {
 
   const { data: profile } = await supabase.from('profiles')
     .select('active_academic_year_id').eq('id', userData.user.id).single()
+  if (!profile?.active_academic_year_id) return { error: 'Tahun ajaran aktif belum diatur.' }
 
   const classQuery = supabase.from('classes').select('id')
     .eq('id', classId).eq('teacher_id', userData.user.id)
 
-  if (profile?.active_academic_year_id) {
-    classQuery.eq('academic_year_id', profile.active_academic_year_id)
-  }
+  classQuery.eq('academic_year_id', profile.active_academic_year_id)
 
   const { data: ownedClass } = await classQuery.maybeSingle()
   if (!ownedClass) return { error: 'Kelas tidak valid atau bukan kelas pada tahun ajaran aktif.' }
@@ -295,6 +294,8 @@ export async function deleteStudent(studentId: string) {
     if (deactivateError) return { error: deactivateError.message }
 
     revalidatePath('/dashboard/classes')
+    revalidatePath('/dashboard')
+    revalidatePath('/dashboard/archive')
     return { success: true, deactivated: true }
   }
 
@@ -307,6 +308,8 @@ export async function deleteStudent(studentId: string) {
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard/classes')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/archive')
   return { success: true, deactivated: false }
 }
 
@@ -341,6 +344,7 @@ export async function importStudents(classId: string, rows: ImportedStudent[]) {
     .select('active_academic_year_id')
     .eq('id', userData.user.id)
     .single()
+  if (!profile?.active_academic_year_id) return { error: 'Tahun ajaran aktif belum diatur.' }
 
   const classQuery = supabase
     .from('classes')
@@ -348,9 +352,7 @@ export async function importStudents(classId: string, rows: ImportedStudent[]) {
     .eq('id', classId)
     .eq('teacher_id', userData.user.id)
 
-  if (profile?.active_academic_year_id) {
-    classQuery.eq('academic_year_id', profile.active_academic_year_id)
-  }
+  classQuery.eq('academic_year_id', profile.active_academic_year_id)
 
   const { data: ownedClass, error: classError } = await classQuery.maybeSingle()
   if (classError) return { error: classError.message }
@@ -469,6 +471,8 @@ export async function importStudents(classId: string, rows: ImportedStudent[]) {
   if (insertError) return { error: insertError.message }
 
   revalidatePath('/dashboard/classes')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/archive')
   return {
     success: true,
     imported: insertRows.length,
