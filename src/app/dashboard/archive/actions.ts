@@ -9,6 +9,12 @@ export async function getArchiveData(yearId?: string) {
 
   const teacherId = userData.user.id
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, nip, school_id")
+    .eq("id", teacherId)
+    .single()
+
   const { data: years, error: yearsError } = await supabase
     .from("academic_years")
     .select("id, name, semester, is_active, created_at")
@@ -28,6 +34,7 @@ export async function getArchiveData(yearId?: string) {
       devices: [],
       materials: [],
       documents: [],
+      printMeta: null,
     }
   }
 
@@ -123,6 +130,18 @@ export async function getArchiveData(yearId?: string) {
     students = data || []
   }
 
+  let school: any = null
+  if (profile?.school_id) {
+    const { data, error } = await supabase
+      .from("schools")
+      .select("name, address, principal_name, principal_nip")
+      .eq("id", profile.school_id)
+      .eq("teacher_id", teacherId)
+      .maybeSingle()
+    if (error) return { error: error.message }
+    school = data
+  }
+
   const attendance = (attendanceRes.data || []).map((item: any) => {
     const counts = { H: 0, S: 0, I: 0, A: 0 }
     ;(item.daily_attendance_records || []).forEach((record: any) => {
@@ -149,5 +168,15 @@ export async function getArchiveData(yearId?: string) {
     devices: devicesRes.data || [],
     materials: materialsRes.data || [],
     documents: documentsRes.data || [],
+    printMeta: {
+      schoolName: school?.name || "",
+      schoolAddress: school?.address || "",
+      academicYear: `${selectedYear.name} - Semester ${selectedYear.semester}`,
+      teacherName: profile?.full_name || "",
+      teacherNip: profile?.nip || "",
+      principalName: school?.principal_name || "",
+      principalNip: school?.principal_nip || "",
+      place: "Pallakawe",
+    },
   }
 }
