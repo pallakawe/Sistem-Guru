@@ -23,6 +23,7 @@ export default async function JournalsPage() {
       initialJournals={initialJournals || []} 
       classes={formData.classes}
       subjects={formData.subjects}
+      printMeta={formData.printMeta}
     />
   )
 }
