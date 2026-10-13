@@ -119,6 +119,7 @@ export async function getDailyAttendance(classId: string, date: string) {
       .select('id')
       .eq('teacher_id', user.id)
       .eq('class_id', classId)
+      .eq('academic_year_id', activeYearId)
       .eq('attendance_date', date)
       .maybeSingle(),
   ])
@@ -216,6 +217,8 @@ export async function saveDailyAttendance(
 
   revalidatePath('/dashboard/attendance')
   revalidatePath('/dashboard')
+  revalidatePath('/dashboard/documents')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
 
