@@ -9,7 +9,7 @@ export async function getJournals() {
   if (!userData?.user) return { error: 'Unauthorized' }
 
   const { data: profile } = await supabase.from('profiles')
-    .select('active_academic_year_id').eq('id', userData.user.id).single()
+    .select('active_academic_year_id, full_name, nip, school_id').eq('id', userData.user.id).single()
   if (!profile?.active_academic_year_id) return { data: [] }
 
   const { data, error } = await supabase
@@ -33,21 +33,40 @@ export async function getJournals() {
 export async function getFormData() {
   const supabase = await createClient()
   const { data: userData } = await supabase.auth.getUser()
-  if (!userData?.user) return { classes: [], subjects: [] }
+  if (!userData?.user) return { classes: [], subjects: [], printMeta: null }
 
   const { data: profile } = await supabase.from('profiles')
-    .select('active_academic_year_id').eq('id', userData.user.id).single()
+    .select('active_academic_year_id, full_name, nip, school_id').eq('id', userData.user.id).single()
 
   const classesQuery = supabase.from('classes').select('id, name')
     .eq('teacher_id', userData.user.id).order('name')
   if (profile?.active_academic_year_id) classesQuery.eq('academic_year_id', profile.active_academic_year_id)
 
-  const [classesRes, subjectsRes] = await Promise.all([
+  const [classesRes, subjectsRes, yearRes, schoolRes] = await Promise.all([
     classesQuery,
     supabase.from('subjects').select('id, name').eq('teacher_id', userData.user.id).order('name'),
+    profile?.active_academic_year_id
+      ? supabase.from('academic_years').select('name, semester').eq('id', profile.active_academic_year_id).eq('teacher_id', userData.user.id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    profile?.school_id
+      ? supabase.from('schools').select('name, address, principal_name, principal_nip').eq('id', profile.school_id).eq('teacher_id', userData.user.id).maybeSingle()
+      : Promise.resolve({ data: null }),
   ])
 
-  return { classes: classesRes.data || [], subjects: subjectsRes.data || [] }
+  return {
+    classes: classesRes.data || [],
+    subjects: subjectsRes.data || [],
+    printMeta: {
+      schoolName: schoolRes.data?.name || '',
+      schoolAddress: schoolRes.data?.address || '',
+      academicYear: yearRes.data ? `${yearRes.data.name} - Semester ${yearRes.data.semester}` : '',
+      teacherName: profile?.full_name || '',
+      teacherNip: profile?.nip || '',
+      principalName: schoolRes.data?.principal_name || '',
+      principalNip: schoolRes.data?.principal_nip || '',
+      place: 'Pallakawe',
+    },
+  }
 }
 
 export async function createJournal(formData: FormData) {
