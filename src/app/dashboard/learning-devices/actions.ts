@@ -73,6 +73,9 @@ export async function createLearningDevice(formData: FormData) {
   }
 
   revalidatePath('/dashboard/learning-devices')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/documents')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
 
@@ -81,8 +84,13 @@ export async function deleteLearningDevice(id: string) {
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { error: 'Unauthorized' }
 
+  const { data: profile } = await supabase.from('profiles')
+    .select('active_academic_year_id').eq('id', userData.user.id).single()
+  if (!profile?.active_academic_year_id) return { error: 'Tahun ajaran aktif belum diatur.' }
+
   const { data: device, error: readError } = await supabase.from('learning_devices')
-    .select('id, file_url').eq('id', id).eq('teacher_id', userData.user.id).maybeSingle()
+    .select('id, file_url').eq('id', id).eq('teacher_id', userData.user.id)
+    .eq('academic_year_id', profile.active_academic_year_id).maybeSingle()
 
   if (readError) return { error: readError.message }
   if (!device) return { error: 'Perangkat pembelajaran tidak ditemukan.' }
@@ -93,10 +101,15 @@ export async function deleteLearningDevice(id: string) {
     if (storageError) return { error: `Gagal menghapus file: ${storageError.message}` }
   }
 
-  const { error } = await supabase.from('learning_devices').delete().eq('id', id).eq('teacher_id', userData.user.id)
+  const { error } = await supabase.from('learning_devices').delete()
+    .eq('id', id).eq('teacher_id', userData.user.id)
+    .eq('academic_year_id', profile.active_academic_year_id)
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard/learning-devices')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/documents')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
 
@@ -105,6 +118,10 @@ export async function updateLearningDevice(id: string, formData: FormData) {
   const supabase = await createClient()
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { error: 'Unauthorized' }
+
+  const { data: profile } = await supabase.from('profiles')
+    .select('active_academic_year_id').eq('id', userData.user.id).single()
+  if (!profile?.active_academic_year_id) return { error: 'Tahun ajaran aktif belum diatur.' }
 
   const title = String(formData.get('title') || '').trim()
   const category = String(formData.get('category') || '').trim()
@@ -124,6 +141,7 @@ export async function updateLearningDevice(id: string, formData: FormData) {
     .update({ title, category, subject_id: subjectId })
     .eq('id', id)
     .eq('teacher_id', userData.user.id)
+    .eq('academic_year_id', profile.active_academic_year_id)
     .select('id')
     .maybeSingle()
 
@@ -131,5 +149,8 @@ export async function updateLearningDevice(id: string, formData: FormData) {
   if (!data) return { error: 'Perangkat pembelajaran tidak ditemukan.' }
 
   revalidatePath('/dashboard/learning-devices')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/documents')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
