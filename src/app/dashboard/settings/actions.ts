@@ -140,34 +140,8 @@ export async function saveAcademicYear(formData: FormData) {
   const semester = String(formData.get('semester') || '').trim()
 
   if (academicYearId) {
-    const { data: selectedYear, error: selectedError } = await supabase
-      .from('academic_years')
-      .select('id')
-      .eq('id', academicYearId)
-      .eq('teacher_id', userData.user.id)
-      .maybeSingle()
-
-    if (selectedError) return { error: selectedError.message }
-    if (!selectedYear) return { error: 'Tahun ajaran tidak valid.' }
-
-    const { error: deactivateError } = await supabase
-      .from('academic_years')
-      .update({ is_active: false })
-      .eq('teacher_id', userData.user.id)
-    if (deactivateError) return { error: deactivateError.message }
-
-    const { error: activateError } = await supabase
-      .from('academic_years')
-      .update({ is_active: true })
-      .eq('id', academicYearId)
-      .eq('teacher_id', userData.user.id)
-    if (activateError) return { error: activateError.message }
-
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({ active_academic_year_id: academicYearId })
-      .eq('id', userData.user.id)
-    if (profileError) return { error: profileError.message }
+    const { error } = await supabase.rpc('set_active_academic_year', { p_year_id: academicYearId })
+    if (error) return { error: error.message }
   } else if (yearName && semester) {
     if (!['Ganjil', 'Genap'].includes(semester)) return { error: 'Semester tidak valid.' }
 
@@ -184,37 +158,26 @@ export async function saveAcademicYear(formData: FormData) {
 
     if (insertError) return { error: insertError.message }
 
-    const { error: deactivateError } = await supabase
-      .from('academic_years')
-      .update({ is_active: false })
-      .eq('teacher_id', userData.user.id)
-      .neq('id', newYear.id)
-
-    if (deactivateError) {
+    const { error: switchError } = await supabase.rpc('set_active_academic_year', { p_year_id: newYear.id })
+    if (switchError) {
       await supabase.from('academic_years').delete().eq('id', newYear.id).eq('teacher_id', userData.user.id)
-      return { error: deactivateError.message }
+      return { error: switchError.message }
     }
-
-    const { error: activateError } = await supabase
-      .from('academic_years')
-      .update({ is_active: true })
-      .eq('id', newYear.id)
-      .eq('teacher_id', userData.user.id)
-
-    if (activateError) return { error: activateError.message }
-
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({ active_academic_year_id: newYear.id })
-      .eq('id', userData.user.id)
-
-    if (profileError) return { error: profileError.message }
   } else {
     return { error: 'Pilih atau buat tahun ajaran terlebih dahulu.' }
   }
 
   revalidatePath('/dashboard/settings')
   revalidatePath('/dashboard')
+  revalidatePath('/dashboard/classes')
+  revalidatePath('/dashboard/schedules')
+  revalidatePath('/dashboard/attendance')
+  revalidatePath('/dashboard/journals')
+  revalidatePath('/dashboard/assessments')
+  revalidatePath('/dashboard/learning-devices')
+  revalidatePath('/dashboard/materials')
+  revalidatePath('/dashboard/documents')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
 
