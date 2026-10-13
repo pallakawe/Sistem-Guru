@@ -33,6 +33,11 @@ export const metadata: Metadata = {
     "Sistem Guru adalah aplikasi administrasi terpadu untuk guru. Kelola kelas, siswa, absensi, jurnal mengajar, perangkat pembelajaran, bahan ajar, dan penilaian dalam satu platform.",
   keywords: ["sistem guru", "administrasi guru", "absensi siswa", "jurnal mengajar", "penilaian siswa"],
   authors: [{ name: "Sistem Guru" }],
+  icons: {
+    icon: "/logo-sistem-guru.png",
+    shortcut: "/logo-sistem-guru.png",
+    apple: "/logo-sistem-guru.png",
+  },
   openGraph: {
     title: "Sistem Guru",
     description: "Semua Administrasi Guru, Dalam Satu Aplikasi.",
