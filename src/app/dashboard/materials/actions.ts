@@ -120,6 +120,8 @@ export async function createMaterial(formData: FormData) {
   }
 
   revalidatePath('/dashboard/materials')
+  revalidatePath('/dashboard/documents')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
 
@@ -152,6 +154,8 @@ export async function deleteMaterial(id: string) {
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard/materials')
+  revalidatePath('/dashboard/documents')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
 
@@ -183,14 +187,16 @@ export async function updateMaterial(id: string, formData: FormData) {
 
   if (classId) {
     const { data: ownedClass } = await supabase.from('classes').select('id')
-      .eq('id', classId).eq('teacher_id', userData.user.id).maybeSingle()
-    if (!ownedClass) return { error: 'Kelas tidak valid.' }
+      .eq('id', classId).eq('teacher_id', userData.user.id)
+      .eq('academic_year_id', activeYearId).maybeSingle()
+    if (!ownedClass) return { error: 'Kelas tidak valid untuk tahun ajaran aktif.' }
   }
 
   if (meetingId) {
     const { data: ownedMeeting } = await supabase.from('meetings').select('id')
-      .eq('id', meetingId).eq('teacher_id', userData.user.id).maybeSingle()
-    if (!ownedMeeting) return { error: 'Pertemuan tidak valid.' }
+      .eq('id', meetingId).eq('teacher_id', userData.user.id)
+      .eq('academic_year_id', activeYearId).maybeSingle()
+    if (!ownedMeeting) return { error: 'Pertemuan tidak valid untuk tahun ajaran aktif.' }
   }
 
   const { data, error } = await supabase.from('learning_materials')
@@ -212,5 +218,7 @@ export async function updateMaterial(id: string, formData: FormData) {
   if (!data) return { error: 'Bahan ajar tidak ditemukan.' }
 
   revalidatePath('/dashboard/materials')
+  revalidatePath('/dashboard/documents')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
