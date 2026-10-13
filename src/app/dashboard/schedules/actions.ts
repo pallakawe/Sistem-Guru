@@ -85,6 +85,7 @@ export async function createSchedule(formData: FormData) {
   }
 
   revalidatePath('/dashboard/schedules')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -151,13 +152,15 @@ export async function updateSchedule(scheduleId: string, formData: FormData) {
 }
 
 export async function deleteSchedule(scheduleId: string) {
-  const { supabase, user } = await getContext()
+  const { supabase, user, activeYearId } = await getContext()
   if (!user) return { error: 'Unauthorized' }
+  if (!activeYearId) return { error: 'Tahun ajaran aktif belum diatur.' }
 
   const { data, error } = await supabase.from('schedules')
     .delete()
     .eq('id', scheduleId)
     .eq('teacher_id', user.id)
+    .eq('academic_year_id', activeYearId)
     .select('id')
     .maybeSingle()
 
