@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Plus, BookOpen, Calendar, Eye, Loader2, Pencil, Trash2, FileSpreadsheet, FileDown } from "lucide-react"
+import { Plus, BookOpen, Calendar, Eye, Loader2, Pencil, Trash2, FileSpreadsheet, FileDown, FolderOpen, ChevronLeft } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -36,7 +36,19 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
   const [viewJournal, setViewJournal] = useState<any | null>(null)
   const [editingJournal, setEditingJournal] = useState<any | null>(null)
   const [journalToDelete, setJournalToDelete] = useState<any | null>(null)
+  const [activeSubjectId, setActiveSubjectId] = useState<string | null>(null)
   const { toast } = useToast()
+
+  const subjectFolders = useMemo(() => subjects.map((subject) => ({
+    ...subject,
+    count: initialJournals.filter((journal) => journal.meetings?.subjects?.id === subject.id).length,
+  })), [subjects, initialJournals])
+
+  const activeSubject = subjects.find((subject) => subject.id === activeSubjectId)
+
+  const visibleJournals = activeSubjectId
+    ? initialJournals.filter((journal) => journal.meetings?.subjects?.id === activeSubjectId)
+    : initialJournals
 
   async function onSubmit(formData: FormData) {
     setIsLoading(true)
@@ -52,6 +64,7 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
 
     setOpen(false)
     setIsLoading(false)
+    window.location.reload()
   }
 
   async function onEdit(formData: FormData) {
@@ -83,11 +96,15 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
   }
 
   const journalExport = {
-    title: "Jurnal Mengajar",
-    fileName: "jurnal-mengajar",
-    subtitle: `Total jurnal: ${initialJournals.length}`,
-    headers: ["No", "Tanggal", "Kelas", "Mata Pelajaran", "Pertemuan", "Topik", "Metode", "Kendala", "Tindak Lanjut"],
-    rows: initialJournals.map((journal, index) => [
+    title: activeSubject ? `Jurnal Mengajar - ${activeSubject.name}` : "Jurnal Mengajar",
+    fileName: activeSubject
+      ? `jurnal-mengajar-${activeSubject.name}`
+      : "jurnal-mengajar",
+    subtitle: activeSubject
+      ? `Mata Pelajaran: ${activeSubject.name} · Total jurnal: ${visibleJournals.length}`
+      : `Total jurnal: ${visibleJournals.length}`,
+    headers: ["No", "Tanggal", "Kelas", "Mata Pelajaran", "Pertemuan", "Topik", "Tujuan Pembelajaran", "Kegiatan Pembelajaran", "Metode", "Catatan", "Kendala", "Tindak Lanjut"],
+    rows: visibleJournals.map((journal, index) => [
       index + 1,
       journal.meetings?.date
         ? format(parseISO(journal.meetings.date), "dd/MM/yyyy")
@@ -96,7 +113,10 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
       journal.meetings?.subjects?.name || "-",
       journal.meetings?.meeting_number || "-",
       journal.topic || "-",
+      journal.learning_objectives || "-",
+      journal.activities || "-",
       journal.method || "-",
+      journal.notes || "-",
       journal.obstacles || "-",
       journal.follow_up || "-",
     ]),
@@ -110,7 +130,7 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
           <p className="text-muted-foreground">Dokumentasi kegiatan pembelajaran setiap pertemuan.</p>
         </div>
         <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
-          {initialJournals.length > 0 && (
+          {visibleJournals.length > 0 && (
             <>
               <Button variant="outline" onClick={() => exportRowsToExcel(journalExport)}>
                 <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel
@@ -204,12 +224,59 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
-        {initialJournals.length === 0 ? (
-          <p className="text-muted-foreground">Belum ada jurnal mengajar.</p>
+      {!activeSubjectId ? (
+        initialJournals.length === 0 ? (
+          <div className="rounded-2xl border border-dashed py-14 text-center text-sm text-muted-foreground">
+            Belum ada jurnal mengajar.
+          </div>
         ) : (
-          initialJournals.map(j => (
-            <Card key={j.id} className="hover:shadow-md transition-shadow">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {subjectFolders.map((subject) => (
+              <button
+                key={subject.id}
+                type="button"
+                onClick={() => setActiveSubjectId(subject.id)}
+                className="group rounded-2xl border bg-card p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md"
+              >
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+                  <FolderOpen className="h-6 w-6" />
+                </div>
+                <div className="flex items-end justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="truncate font-semibold">{subject.name}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{subject.count} jurnal</p>
+                  </div>
+                  <span className="text-sm font-medium text-primary opacity-0 transition group-hover:opacity-100">Buka →</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )
+      ) : (
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 rounded-2xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <Button type="button" variant="outline" size="sm" onClick={() => setActiveSubjectId(null)}>
+                <ChevronLeft className="mr-1 h-4 w-4" /> Kembali
+              </Button>
+              <div>
+                <p className="text-xs text-muted-foreground">Folder Mata Pelajaran</p>
+                <h2 className="font-semibold">{activeSubject?.name}</h2>
+              </div>
+            </div>
+            <Badge variant="secondary">{visibleJournals.length} jurnal</Badge>
+          </div>
+
+          {visibleJournals.length === 0 ? (
+            <div className="rounded-2xl border border-dashed py-12 text-center">
+              <FolderOpen className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+              <p className="font-medium">Belum ada jurnal untuk {activeSubject?.name}</p>
+              <p className="mt-1 text-sm text-muted-foreground">Jurnal baru dengan mata pelajaran ini akan otomatis masuk ke folder ini.</p>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+              {visibleJournals.map(j => (
+                <Card key={j.id} className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -248,9 +315,11 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
                 </div>
               </CardContent>
             </Card>
-          ))
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <Dialog open={!!editingJournal} onOpenChange={(value) => !value && setEditingJournal(null)}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
