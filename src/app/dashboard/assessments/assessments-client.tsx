@@ -23,8 +23,8 @@ const TYPE_BADGE: Record<string, string> = {
   "Asesmen Sumatif": "bg-red-100 text-red-700", "Asesmen Formatif": "bg-teal-100 text-teal-700",
 }
 
-export default function AssessmentsClient({ assessments: initialAssessments, classes, subjects }: {
-  assessments: any[], classes: any[], subjects: any[]
+export default function AssessmentsClient({ assessments: initialAssessments, classes, subjects, printMeta }: {
+  assessments: any[], classes: any[], subjects: any[], printMeta?: any
 }) {
   const [assessments, setAssessments] = useState<any[]>(initialAssessments)
   const [open, setOpen] = useState(false)
@@ -124,6 +124,7 @@ export default function AssessmentsClient({ assessments: initialAssessments, cla
     title: `Daftar Nilai - ${selectedAssessment.title}`,
     fileName: `nilai-${selectedAssessment.classes?.name || "kelas"}-${selectedAssessment.title}`,
     subtitle: `${selectedAssessment.classes?.name || ""} · ${selectedAssessment.subjects?.name || ""} · Bobot ${selectedAssessment.weight || 0}%`,
+    official: printMeta || undefined,
     headers: ["No", "Nama Siswa", "Nilai"],
     rows: students.map((student, index) => [
       index + 1,
