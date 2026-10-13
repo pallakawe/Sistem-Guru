@@ -30,6 +30,15 @@ export async function getStudentsByClass(classId: string) {
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { error: 'Unauthorized' }
 
+  const { data: profile } = await supabase.from('profiles')
+    .select('active_academic_year_id').eq('id', userData.user.id).single()
+  if (!profile?.active_academic_year_id) return { error: 'Tahun ajaran aktif belum diatur.' }
+
+  const { data: ownedClass } = await supabase.from('classes')
+    .select('id').eq('id', classId).eq('teacher_id', userData.user.id)
+    .eq('academic_year_id', profile.active_academic_year_id).maybeSingle()
+  if (!ownedClass) return { error: 'Kelas tidak valid untuk tahun ajaran aktif.' }
+
   const { data, error } = await supabase
     .from('students')
     .select('id, full_name, nis, nisn, gender, height_cm, weight_kg, father_name, mother_name, father_job, mother_job, father_phone, mother_phone, full_address, is_active')
@@ -62,6 +71,8 @@ export async function addClass(formData: FormData) {
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard/classes')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
 
@@ -111,6 +122,8 @@ export async function addStudent(formData: FormData) {
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard/classes')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
 
@@ -118,6 +131,17 @@ export async function updateStudent(studentId: string, formData: FormData) {
   const supabase = await createClient()
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { error: 'Unauthorized' }
+
+  const { data: profile } = await supabase.from('profiles')
+    .select('active_academic_year_id').eq('id', userData.user.id).single()
+  if (!profile?.active_academic_year_id) return { error: 'Tahun ajaran aktif belum diatur.' }
+
+  const { data: student } = await supabase.from('students')
+    .select('id, class_id, classes!inner(academic_year_id)')
+    .eq('id', studentId).eq('teacher_id', userData.user.id)
+    .eq('classes.academic_year_id', profile.active_academic_year_id)
+    .maybeSingle()
+  if (!student) return { error: 'Siswa tidak ditemukan pada tahun ajaran aktif.' }
 
   const fullName = formData.get('fullName') as string
   const nis = formData.get('nis') as string
@@ -147,6 +171,8 @@ export async function updateStudent(studentId: string, formData: FormData) {
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard/classes')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
 
@@ -154,6 +180,10 @@ export async function updateClass(classId: string, formData: FormData) {
   const supabase = await createClient()
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { error: 'Anda harus login terlebih dahulu.' }
+
+  const { data: profile } = await supabase.from('profiles')
+    .select('active_academic_year_id').eq('id', userData.user.id).single()
+  if (!profile?.active_academic_year_id) return { error: 'Tahun ajaran aktif belum diatur.' }
 
   const name = String(formData.get('name') || '').trim()
   const gradeLevel = String(formData.get('gradeLevel') || '').trim()
@@ -166,11 +196,14 @@ export async function updateClass(classId: string, formData: FormData) {
     .update({ name, grade_level: gradeLevel, homeroom_teacher: homeroomTeacher })
     .eq('id', classId)
     .eq('teacher_id', userData.user.id)
+    .eq('academic_year_id', profile.active_academic_year_id)
     .select('id')
     .maybeSingle()
   if (error) return { error: error.message }
   if (!data) return { error: 'Kelas tidak ditemukan atau tidak diizinkan.' }
   revalidatePath('/dashboard/classes')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
 
@@ -179,15 +212,20 @@ export async function deleteClass(classId: string) {
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { error: 'Anda harus login terlebih dahulu.' }
 
+  const { data: profile } = await supabase.from('profiles')
+    .select('active_academic_year_id').eq('id', userData.user.id).single()
+  if (!profile?.active_academic_year_id) return { error: 'Tahun ajaran aktif belum diatur.' }
+
   const { data: owned, error: ownerError } = await supabase.from('classes')
-    .select('id').eq('id', classId).eq('teacher_id', userData.user.id).maybeSingle()
+    .select('id').eq('id', classId).eq('teacher_id', userData.user.id)
+    .eq('academic_year_id', profile.active_academic_year_id).maybeSingle()
   if (ownerError) return { error: ownerError.message }
   if (!owned) return { error: 'Kelas tidak ditemukan atau tidak diizinkan.' }
 
   // Existing foreign keys use ON DELETE CASCADE. Never delete a class while
   // dependent student / teaching data may be destroyed by that cascade.
   const relatedTables = [
-    'students', 'schedules', 'meetings', 'assessments', 'learning_materials'
+    'students', 'schedules', 'meetings', 'assessments', 'learning_materials', 'daily_attendance'
   ] as const
   for (const table of relatedTables) {
     const { count, error } = await supabase.from(table)
@@ -202,10 +240,13 @@ export async function deleteClass(classId: string) {
 
   const { data, error } = await supabase.from('classes').delete()
     .eq('id', classId).eq('teacher_id', userData.user.id)
+    .eq('academic_year_id', profile.active_academic_year_id)
     .select('id').maybeSingle()
   if (error) return { error: error.message }
   if (!data) return { error: 'Kelas sudah tidak tersedia.' }
   revalidatePath('/dashboard/classes')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
 
@@ -215,11 +256,16 @@ export async function deleteStudent(studentId: string) {
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { error: 'Unauthorized' }
 
+  const { data: profile } = await supabase.from('profiles')
+    .select('active_academic_year_id').eq('id', userData.user.id).single()
+  if (!profile?.active_academic_year_id) return { error: 'Tahun ajaran aktif belum diatur.' }
+
   const { data: student, error: studentError } = await supabase
     .from('students')
-    .select('id, class_id')
+    .select('id, class_id, classes!inner(academic_year_id)')
     .eq('id', studentId)
     .eq('teacher_id', userData.user.id)
+    .eq('classes.academic_year_id', profile.active_academic_year_id)
     .maybeSingle()
 
   if (studentError) return { error: studentError.message }
