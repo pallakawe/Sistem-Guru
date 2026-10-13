@@ -101,6 +101,9 @@ export async function createJournal(formData: FormData) {
   }
 
   revalidatePath('/dashboard/journals')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/documents')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
 
@@ -116,9 +119,10 @@ export async function updateJournal(journalId: string, formData: FormData) {
 
   const { data: journal, error: journalReadError } = await supabase
     .from('teaching_journals')
-    .select('id, meeting_id')
+    .select('id, meeting_id, meetings!inner(academic_year_id)')
     .eq('id', journalId)
     .eq('teacher_id', userData.user.id)
+    .eq('meetings.academic_year_id', profile.active_academic_year_id)
     .maybeSingle()
 
   if (journalReadError) return { error: journalReadError.message }
@@ -151,6 +155,7 @@ export async function updateJournal(journalId: string, formData: FormData) {
     .update({ meeting_number: meetingNumber, date, class_id: classId, subject_id: subjectId })
     .eq('id', journal.meeting_id)
     .eq('teacher_id', userData.user.id)
+    .eq('academic_year_id', profile.active_academic_year_id)
 
   if (meetingError) return { error: meetingError.message }
 
@@ -170,6 +175,9 @@ export async function updateJournal(journalId: string, formData: FormData) {
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard/journals')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/documents')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
 
@@ -178,11 +186,16 @@ export async function deleteJournal(journalId: string) {
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { error: 'Unauthorized' }
 
+  const { data: profile } = await supabase.from('profiles')
+    .select('active_academic_year_id').eq('id', userData.user.id).single()
+  if (!profile?.active_academic_year_id) return { error: 'Tahun ajaran aktif belum diatur.' }
+
   const { data: journal, error: journalError } = await supabase
     .from('teaching_journals')
-    .select('id, meeting_id')
+    .select('id, meeting_id, meetings!inner(academic_year_id)')
     .eq('id', journalId)
     .eq('teacher_id', userData.user.id)
+    .eq('meetings.academic_year_id', profile.active_academic_year_id)
     .maybeSingle()
 
   if (journalError) return { error: journalError.message }
@@ -192,10 +205,14 @@ export async function deleteJournal(journalId: string) {
     .delete()
     .eq('id', journal.meeting_id)
     .eq('teacher_id', userData.user.id)
+    .eq('academic_year_id', profile.active_academic_year_id)
 
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard/journals')
   revalidatePath('/dashboard/materials')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/documents')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
