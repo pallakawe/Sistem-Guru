@@ -27,7 +27,7 @@ export async function getDocuments() {
 
   const manualQuery = supabase
     .from('documents')
-    .select('id, title, category, file_url, file_name, created_at')
+    .select('id, title, category, file_url, file_name, created_at, academic_year_id')
     .eq('teacher_id', teacherId)
     .order('created_at', { ascending: false })
 
@@ -39,7 +39,7 @@ export async function getDocuments() {
 
   const materialsQuery = supabase
     .from('learning_materials')
-    .select('id, title, file_url, file_type, created_at, classes(name), subjects(name), meetings(academic_year_id)')
+    .select('id, title, file_url, file_type, created_at, academic_year_id, classes(name), subjects(name)')
     .eq('teacher_id', teacherId)
     .order('created_at', { ascending: false })
 
@@ -69,9 +69,11 @@ export async function getDocuments() {
     .order('attendance_date', { ascending: false })
 
   if (activeYearId) {
+    manualQuery.eq('academic_year_id', activeYearId)
     devicesQuery.eq('academic_year_id', activeYearId)
     journalsQuery.eq('meetings.academic_year_id', activeYearId)
     assessmentsQuery.eq('academic_year_id', activeYearId)
+    materialsQuery.eq('academic_year_id', activeYearId)
     attendanceQuery.eq('academic_year_id', activeYearId)
   }
 
@@ -116,12 +118,7 @@ export async function getDocuments() {
     description: [item.subjects?.name, item.category].filter(Boolean).join(' · '),
   }))
 
-  const materials = (materialsRes.data || [])
-    .filter((item: any) => {
-      if (!activeYearId) return true
-      return !item.meetings || item.meetings?.academic_year_id === activeYearId
-    })
-    .map((item: any) => ({
+  const materials = (materialsRes.data || []).map((item: any) => ({
       id: `material-${item.id}`,
       source_id: item.id,
       title: item.title,
@@ -219,6 +216,12 @@ export async function createDocument(formData: FormData) {
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { error: 'Unauthorized' }
 
+  const { data: profile } = await supabase.from('profiles')
+    .select('active_academic_year_id')
+    .eq('id', userData.user.id)
+    .single()
+  if (!profile?.active_academic_year_id) return { error: 'Tahun ajaran aktif belum diatur.' }
+
   const title = String(formData.get('title') || '').trim()
   const category = String(formData.get('category') || '').trim()
   const file = formData.get('file')
@@ -234,7 +237,8 @@ export async function createDocument(formData: FormData) {
 
   const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath)
   const { error } = await supabase.from('documents').insert({
-    title, category, file_url: urlData.publicUrl, file_name: file.name, teacher_id: userData.user.id
+    title, category, file_url: urlData.publicUrl, file_name: file.name,
+    academic_year_id: profile.active_academic_year_id, teacher_id: userData.user.id
   })
 
   if (error) {
@@ -243,6 +247,7 @@ export async function createDocument(formData: FormData) {
   }
 
   revalidatePath('/dashboard/documents')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
 
@@ -251,8 +256,15 @@ export async function deleteDocument(id: string) {
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { error: 'Unauthorized' }
 
+  const { data: profile } = await supabase.from('profiles')
+    .select('active_academic_year_id')
+    .eq('id', userData.user.id)
+    .single()
+  if (!profile?.active_academic_year_id) return { error: 'Tahun ajaran aktif belum diatur.' }
+
   const { data: document, error: readError } = await supabase.from('documents')
-    .select('id, file_url').eq('id', id).eq('teacher_id', userData.user.id).maybeSingle()
+    .select('id, file_url').eq('id', id).eq('teacher_id', userData.user.id)
+    .eq('academic_year_id', profile.active_academic_year_id).maybeSingle()
 
   if (readError) return { error: readError.message }
   if (!document) return { error: 'Dokumen tidak ditemukan.' }
@@ -263,10 +275,13 @@ export async function deleteDocument(id: string) {
     if (storageError) return { error: `Gagal menghapus file: ${storageError.message}` }
   }
 
-  const { error } = await supabase.from('documents').delete().eq('id', id).eq('teacher_id', userData.user.id)
+  const { error } = await supabase.from('documents').delete().eq('id', id)
+    .eq('teacher_id', userData.user.id)
+    .eq('academic_year_id', profile.active_academic_year_id)
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard/documents')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
 
@@ -274,6 +289,12 @@ export async function updateDocument(id: string, formData: FormData) {
   const supabase = await createClient()
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { error: 'Unauthorized' }
+
+  const { data: profile } = await supabase.from('profiles')
+    .select('active_academic_year_id')
+    .eq('id', userData.user.id)
+    .single()
+  if (!profile?.active_academic_year_id) return { error: 'Tahun ajaran aktif belum diatur.' }
 
   const title = String(formData.get('title') || '').trim()
   const category = String(formData.get('category') || '').trim()
@@ -283,6 +304,7 @@ export async function updateDocument(id: string, formData: FormData) {
     .update({ title, category })
     .eq('id', id)
     .eq('teacher_id', userData.user.id)
+    .eq('academic_year_id', profile.active_academic_year_id)
     .select('id')
     .maybeSingle()
 
@@ -290,5 +312,6 @@ export async function updateDocument(id: string, formData: FormData) {
   if (!data) return { error: 'Dokumen tidak ditemukan.' }
 
   revalidatePath('/dashboard/documents')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
