@@ -11,7 +11,7 @@ async function getActiveYearAndUser() {
   const { data: profile } = await supabase
     .from('profiles')
     .select('active_academic_year_id')
-    .eq('id', user.id)
+    .eq('id', userData.user.id)
     .single()
 
   return { supabase, user: userData.user, activeYearId: profile?.active_academic_year_id || null }
