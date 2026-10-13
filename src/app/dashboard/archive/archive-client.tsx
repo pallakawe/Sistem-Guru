@@ -2,7 +2,7 @@
 'use client'
 
 import { useMemo, useState, useTransition } from "react"
-import { Archive, BookOpen, CalendarCheck, FileText, FolderOpen, GraduationCap, Loader2, Users } from "lucide-react"
+import { Archive, BookOpen, CalendarCheck, FileText, FolderOpen, GraduationCap, Library, Loader2, Users } from "lucide-react"
 import { getArchiveData } from "./actions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,6 +16,8 @@ const SECTIONS = [
   { id: "attendance", label: "Absensi", icon: CalendarCheck },
   { id: "assessments", label: "Penilaian", icon: GraduationCap },
   { id: "devices", label: "Perangkat", icon: FolderOpen },
+  { id: "materials", label: "Bahan Ajar", icon: Library },
+  { id: "documents", label: "Dokumen", icon: FileText },
 ]
 
 export default function ArchiveClient({ initialData }: { initialData: any }) {
@@ -45,6 +47,8 @@ export default function ArchiveClient({ initialData }: { initialData: any }) {
     attendance: data.attendance?.length || 0,
     assessments: data.assessments?.length || 0,
     devices: data.devices?.length || 0,
+    materials: data.materials?.length || 0,
+    documents: data.documents?.length || 0,
   }), [data])
 
   const groupedStudents = useMemo(() => {
@@ -127,7 +131,7 @@ export default function ArchiveClient({ initialData }: { initialData: any }) {
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
             {[
               ["Kelas", totals.classes],
               ["Siswa", totals.students],
@@ -135,6 +139,8 @@ export default function ArchiveClient({ initialData }: { initialData: any }) {
               ["Hari Absen", totals.attendance],
               ["Penilaian", totals.assessments],
               ["Perangkat", totals.devices],
+              ["Bahan Ajar", totals.materials],
+              ["Dokumen", totals.documents],
             ].map(([label, value]) => (
               <Card key={String(label)}>
                 <CardContent className="p-4 text-center">
@@ -275,6 +281,60 @@ export default function ArchiveClient({ initialData }: { initialData: any }) {
                     <p className="mt-3 text-sm text-muted-foreground">
                       Bobot {assessment.weight || 0}% · {(assessment.assessment_scores as any[])?.[0]?.count || 0} nilai siswa
                     </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {section === "materials" && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(data.materials || []).length === 0 ? (
+                <Empty text="Tidak ada bahan ajar pada tahun ajaran ini." />
+              ) : data.materials.map((material: any) => (
+                <Card key={material.id}>
+                  <CardContent className="flex items-center gap-3 p-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Library className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate font-medium">{material.title}</h3>
+                      <p className="truncate text-sm text-muted-foreground">
+                        {[material.subjects?.name, material.classes?.name, material.file_type].filter(Boolean).join(" · ") || "Bahan ajar"}
+                      </p>
+                    </div>
+                    {material.file_url && (
+                      <Button variant="outline" size="sm" render={<a href={material.file_url} target="_blank" rel="noopener noreferrer" />}>
+                        Buka
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {section === "documents" && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(data.documents || []).length === 0 ? (
+                <Empty text="Tidak ada dokumen tambahan pada tahun ajaran ini." />
+              ) : data.documents.map((document: any) => (
+                <Card key={document.id}>
+                  <CardContent className="flex items-center gap-3 p-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate font-medium">{document.title}</h3>
+                      <p className="truncate text-sm text-muted-foreground">
+                        {document.category}{document.file_name ? ` · ${document.file_name}` : ""}
+                      </p>
+                    </div>
+                    {document.file_url && (
+                      <Button variant="outline" size="sm" render={<a href={document.file_url} target="_blank" rel="noopener noreferrer" />}>
+                        Buka
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ))}
