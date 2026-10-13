@@ -26,6 +26,8 @@ export async function getArchiveData(yearId?: string) {
       attendance: [],
       assessments: [],
       devices: [],
+      materials: [],
+      documents: [],
     }
   }
 
@@ -41,6 +43,8 @@ export async function getArchiveData(yearId?: string) {
     attendanceRes,
     assessmentsRes,
     devicesRes,
+    materialsRes,
+    documentsRes,
   ] = await Promise.all([
     supabase
       .from("classes")
@@ -79,6 +83,18 @@ export async function getArchiveData(yearId?: string) {
       .eq("teacher_id", teacherId)
       .eq("academic_year_id", selectedYear.id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("learning_materials")
+      .select("id, title, description, topic, file_url, file_type, created_at, classes(name), subjects(name)")
+      .eq("teacher_id", teacherId)
+      .eq("academic_year_id", selectedYear.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("documents")
+      .select("id, title, category, file_url, file_name, created_at")
+      .eq("teacher_id", teacherId)
+      .eq("academic_year_id", selectedYear.id)
+      .order("created_at", { ascending: false }),
   ])
 
   const firstError =
@@ -86,7 +102,9 @@ export async function getArchiveData(yearId?: string) {
     journalsRes.error ||
     attendanceRes.error ||
     assessmentsRes.error ||
-    devicesRes.error
+    devicesRes.error ||
+    materialsRes.error ||
+    documentsRes.error
 
   if (firstError) return { error: firstError.message }
 
@@ -129,5 +147,7 @@ export async function getArchiveData(yearId?: string) {
     attendance,
     assessments: assessmentsRes.data || [],
     devices: devicesRes.data || [],
+    materials: materialsRes.data || [],
+    documents: documentsRes.data || [],
   }
 }
