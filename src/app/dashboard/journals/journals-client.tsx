@@ -25,10 +25,11 @@ import { createJournal, updateJournal, deleteJournal } from "./actions"
 import { useToast } from "@/hooks/use-toast"
 import { exportRowsToExcel, exportRowsToPdf } from "@/lib/export-data"
 
-export default function JournalsClient({ initialJournals, classes, subjects }: { 
+export default function JournalsClient({ initialJournals, classes, subjects, printMeta }: { 
   initialJournals: any[], 
   classes: any[], 
-  subjects: any[] 
+  subjects: any[],
+  printMeta?: any
 }) {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -104,6 +105,7 @@ export default function JournalsClient({ initialJournals, classes, subjects }: {
       ? `Mata Pelajaran: ${activeSubject.name} · Total jurnal: ${visibleJournals.length}`
       : `Total jurnal: ${visibleJournals.length}`,
     headers: ["No", "Tanggal", "Kelas", "Mata Pelajaran", "Pertemuan", "Topik", "Tujuan Pembelajaran", "Kegiatan Pembelajaran", "Metode", "Catatan", "Kendala", "Tindak Lanjut"],
+    official: printMeta || undefined,
     rows: visibleJournals.map((journal, index) => [
       index + 1,
       journal.meetings?.date
