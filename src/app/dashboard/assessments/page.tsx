@@ -18,6 +18,7 @@ export default async function AssessmentsPage() {
       assessments={result.assessments || []}
       classes={result.classes || []}
       subjects={result.subjects || []}
+      printMeta={result.printMeta}
     />
   )
 }
