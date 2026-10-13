@@ -2,12 +2,24 @@
 
 type ExportCell = string | number | null | undefined
 
+type OfficialPrintMeta = {
+  schoolName?: string
+  schoolAddress?: string
+  academicYear?: string
+  teacherName?: string
+  teacherNip?: string
+  principalName?: string
+  principalNip?: string
+  place?: string
+}
+
 type ExportOptions = {
   title: string
   fileName: string
   headers: string[]
   rows: ExportCell[][]
   subtitle?: string
+  official?: OfficialPrintMeta
 }
 
 function safeFileName(value: string) {
@@ -24,20 +36,39 @@ export async function exportRowsToExcel({
   headers,
   rows,
   subtitle,
+  official,
 }: ExportOptions) {
   const XLSX = await import("xlsx")
 
-  const metadata: ExportCell[][] = [
+  const metadata: ExportCell[][] = official ? [
+    [official.schoolName || "SEKOLAH"],
+    ...(official.schoolAddress ? [[official.schoolAddress]] : []),
+    [title],
+    ...(official.academicYear ? [[`Tahun Ajaran: ${official.academicYear}`]] : []),
+    ...(subtitle ? [[subtitle]] : []),
+    [],
+  ] : [
     [title],
     ...(subtitle ? [[subtitle]] : []),
     ["Diekspor", new Date().toLocaleString("id-ID")],
     [],
   ]
 
+  const signatureRows: ExportCell[][] = official ? [
+    [],
+    ["Mengetahui,", "", "", official.place ? `${official.place}, ${new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}` : ""],
+    ["Kepala Sekolah", "", "", "Guru"],
+    [],
+    [],
+    [official.principalName || "(................................)", "", "", official.teacherName || "(................................)"],
+    [official.principalNip ? `NIP. ${official.principalNip}` : "NIP. ........................", "", "", official.teacherNip ? `NIP. ${official.teacherNip}` : "NIP. ........................"],
+  ] : []
+
   const sheet = XLSX.utils.aoa_to_sheet([
     ...metadata,
     headers,
     ...rows,
+    ...signatureRows,
   ])
 
   const headerRow = metadata.length
@@ -62,6 +93,7 @@ export async function exportRowsToPdf({
   headers,
   rows,
   subtitle,
+  official,
 }: ExportOptions) {
   const [{ jsPDF }, autoTableModule] = await Promise.all([
     import("jspdf"),
@@ -76,26 +108,58 @@ export async function exportRowsToPdf({
     format: "a4",
   })
 
-  doc.setFont("helvetica", "bold")
-  doc.setFontSize(15)
-  doc.text(title, 14, 16)
+  const pageWidth = doc.internal.pageSize.getWidth()
+  let y = 14
 
-  let y = 22
-  if (subtitle) {
+  if (official) {
+    doc.setTextColor(31)
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(12)
+    doc.text(official.schoolName || "SEKOLAH", pageWidth / 2, y, { align: "center" })
+    y += 5
+    if (official.schoolAddress) {
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(8)
+      doc.text(official.schoolAddress, pageWidth / 2, y, { align: "center" })
+      y += 4
+    }
+    doc.setLineWidth(0.5)
+    doc.line(12, y, pageWidth - 12, y)
+    y += 7
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(12)
+    doc.text(title.toUpperCase(), pageWidth / 2, y, { align: "center" })
+    y += 5
     doc.setFont("helvetica", "normal")
-    doc.setFontSize(9)
-    doc.setTextColor(90)
-    doc.text(subtitle, 14, y)
-    y += 6
+    doc.setFontSize(8.5)
+    if (official.academicYear) {
+      doc.text(`Tahun Ajaran: ${official.academicYear}`, pageWidth / 2, y, { align: "center" })
+      y += 4
+    }
+    if (subtitle) {
+      doc.text(subtitle, pageWidth / 2, y, { align: "center" })
+      y += 5
+    }
+  } else {
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(15)
+    doc.text(title, 14, 16)
+    y = 22
+    if (subtitle) {
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(9)
+      doc.setTextColor(90)
+      doc.text(subtitle, 14, y)
+      y += 6
+    }
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(8)
+    doc.setTextColor(120)
+    doc.text(`Diekspor: ${new Date().toLocaleString("id-ID")}`, 14, y)
   }
 
-  doc.setFont("helvetica", "normal")
-  doc.setFontSize(8)
-  doc.setTextColor(120)
-  doc.text(`Diekspor: ${new Date().toLocaleString("id-ID")}`, 14, y)
-
   autoTable(doc, {
-    startY: y + 5,
+    startY: y + (official ? 2 : 5),
     head: [headers],
     body: rows.map(row => row.map(cell => String(cell ?? ""))),
     styles: {
@@ -113,6 +177,34 @@ export async function exportRowsToPdf({
     },
     margin: { left: 10, right: 10 },
   })
+
+  if (official) {
+    const table = (doc as any).lastAutoTable
+    let signatureY = (table?.finalY || y) + 10
+    const pageHeight = doc.internal.pageSize.getHeight()
+    if (signatureY > pageHeight - 38) {
+      doc.addPage()
+      signatureY = 20
+    }
+    const leftX = pageWidth * 0.25
+    const rightX = pageWidth * 0.75
+    const dateText = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
+
+    doc.setTextColor(31)
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(8)
+    doc.text("Mengetahui,", leftX, signatureY, { align: "center" })
+    doc.text(`${official.place || "................"}, ${dateText}`, rightX, signatureY, { align: "center" })
+    doc.text("Kepala Sekolah", leftX, signatureY + 5, { align: "center" })
+    doc.text("Guru", rightX, signatureY + 5, { align: "center" })
+
+    doc.setFont("helvetica", "bold")
+    doc.text(official.principalName || "(................................)", leftX, signatureY + 24, { align: "center" })
+    doc.text(official.teacherName || "(................................)", rightX, signatureY + 24, { align: "center" })
+    doc.setFont("helvetica", "normal")
+    doc.text(official.principalNip ? `NIP. ${official.principalNip}` : "NIP. ........................", leftX, signatureY + 29, { align: "center" })
+    doc.text(official.teacherNip ? `NIP. ${official.teacherNip}` : "NIP. ........................", rightX, signatureY + 29, { align: "center" })
+  }
 
   doc.save(`${safeFileName(fileName)}.pdf`)
 }
