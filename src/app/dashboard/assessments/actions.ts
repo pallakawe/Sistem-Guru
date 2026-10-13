@@ -10,15 +10,15 @@ async function getActiveYearAndUser() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('active_academic_year_id')
+    .select('active_academic_year_id, full_name, nip, school_id')
     .eq('id', userData.user.id)
     .single()
 
-  return { supabase, user: userData.user, activeYearId: profile?.active_academic_year_id || null }
+  return { supabase, user: userData.user, activeYearId: profile?.active_academic_year_id || null, profile }
 }
 
 export async function getAssessmentsData() {
-  const { supabase, user, activeYearId } = await getActiveYearAndUser()
+  const { supabase, user, activeYearId, profile } = await getActiveYearAndUser()
   if (!user) return { error: 'Unauthorized' }
 
   const classesQuery = supabase
@@ -37,10 +37,16 @@ export async function getAssessmentsData() {
 
   if (activeYearId) assessmentsQuery.eq('academic_year_id', activeYearId)
 
-  const [classesRes, subjectsRes, assessmentsRes] = await Promise.all([
+  const [classesRes, subjectsRes, assessmentsRes, yearRes, schoolRes] = await Promise.all([
     classesQuery,
     supabase.from('subjects').select('id, name').eq('teacher_id', user.id).order('name'),
     assessmentsQuery,
+    activeYearId
+      ? supabase.from('academic_years').select('name, semester').eq('id', activeYearId).eq('teacher_id', user.id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    profile?.school_id
+      ? supabase.from('schools').select('name, address, principal_name, principal_nip').eq('id', profile.school_id).eq('teacher_id', user.id).maybeSingle()
+      : Promise.resolve({ data: null }),
   ])
 
   const error = classesRes.error || subjectsRes.error || assessmentsRes.error
@@ -51,6 +57,16 @@ export async function getAssessmentsData() {
     classes: classesRes.data || [],
     subjects: subjectsRes.data || [],
     activeYearId,
+    printMeta: {
+      schoolName: schoolRes.data?.name || '',
+      schoolAddress: schoolRes.data?.address || '',
+      academicYear: yearRes.data ? `${yearRes.data.name} - Semester ${yearRes.data.semester}` : '',
+      teacherName: profile?.full_name || '',
+      teacherNip: profile?.nip || '',
+      principalName: schoolRes.data?.principal_name || '',
+      principalNip: schoolRes.data?.principal_nip || '',
+      place: 'Pallakawe',
+    },
   }
 }
 
