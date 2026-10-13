@@ -30,9 +30,14 @@ export async function getMaterialsData() {
   }
 
   const [materialsRes, classesRes, subjectsRes, meetingsRes] = await Promise.all([
-    supabase.from('learning_materials')
-      .select('id, title, description, topic, file_url, file_type, created_at, class_id, subject_id, meeting_id, classes(name), subjects(name), meetings(meeting_number)')
-      .eq('teacher_id', teacherId).order('created_at', { ascending: false }),
+    (() => {
+      const query = supabase.from('learning_materials')
+        .select('id, title, description, topic, file_url, file_type, created_at, class_id, subject_id, meeting_id, academic_year_id, classes(name), subjects(name), meetings(meeting_number)')
+        .eq('teacher_id', teacherId)
+        .order('created_at', { ascending: false })
+      if (profile?.active_academic_year_id) query.eq('academic_year_id', profile.active_academic_year_id)
+      return query
+    })(),
     classesQuery,
     supabase.from('subjects').select('id, name').eq('teacher_id', teacherId).order('name'),
     meetingsQuery,
@@ -52,6 +57,14 @@ export async function createMaterial(formData: FormData) {
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { error: 'Unauthorized' }
 
+  const { data: profile } = await supabase.from('profiles')
+    .select('active_academic_year_id')
+    .eq('id', userData.user.id)
+    .single()
+  if (!profile?.active_academic_year_id) return { error: 'Tahun ajaran aktif belum diatur.' }
+
+  const activeYearId = profile.active_academic_year_id
+
   const title = String(formData.get('title') || '').trim()
   const description = String(formData.get('description') || '').trim()
   const subjectId = String(formData.get('subject_id') || '').trim()
@@ -70,12 +83,14 @@ export async function createMaterial(formData: FormData) {
 
   if (classId) {
     const { data: ownedClass } = await supabase.from('classes').select('id')
-      .eq('id', classId).eq('teacher_id', userData.user.id).maybeSingle()
+      .eq('id', classId).eq('teacher_id', userData.user.id)
+      .eq('academic_year_id', activeYearId).maybeSingle()
     if (!ownedClass) return { error: 'Kelas tidak valid.' }
   }
   if (meetingId) {
     const { data: ownedMeeting } = await supabase.from('meetings').select('id')
-      .eq('id', meetingId).eq('teacher_id', userData.user.id).maybeSingle()
+      .eq('id', meetingId).eq('teacher_id', userData.user.id)
+      .eq('academic_year_id', activeYearId).maybeSingle()
     if (!ownedMeeting) return { error: 'Pertemuan tidak valid.' }
   }
 
@@ -96,7 +111,7 @@ export async function createMaterial(formData: FormData) {
   const { error } = await supabase.from('learning_materials').insert({
     title, description: description || null, subject_id: subjectId, class_id: classId || null,
     topic: topic || null, file_url: fileUrl, file_type: fileType || null,
-    meeting_id: meetingId || null, teacher_id: userData.user.id
+    meeting_id: meetingId || null, academic_year_id: activeYearId, teacher_id: userData.user.id
   })
 
   if (error) {
@@ -113,8 +128,15 @@ export async function deleteMaterial(id: string) {
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { error: 'Unauthorized' }
 
+  const { data: profile } = await supabase.from('profiles')
+    .select('active_academic_year_id')
+    .eq('id', userData.user.id)
+    .single()
+  if (!profile?.active_academic_year_id) return { error: 'Tahun ajaran aktif belum diatur.' }
+
   const { data: material, error: readError } = await supabase.from('learning_materials')
-    .select('id, file_url').eq('id', id).eq('teacher_id', userData.user.id).maybeSingle()
+    .select('id, file_url').eq('id', id).eq('teacher_id', userData.user.id)
+    .eq('academic_year_id', profile.active_academic_year_id).maybeSingle()
   if (readError) return { error: readError.message }
   if (!material) return { error: 'Bahan ajar tidak ditemukan.' }
 
@@ -126,6 +148,7 @@ export async function deleteMaterial(id: string) {
 
   const { error } = await supabase.from('learning_materials').delete()
     .eq('id', id).eq('teacher_id', userData.user.id)
+    .eq('academic_year_id', profile.active_academic_year_id)
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard/materials')
@@ -137,6 +160,13 @@ export async function updateMaterial(id: string, formData: FormData) {
   const supabase = await createClient()
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return { error: 'Unauthorized' }
+
+  const { data: profile } = await supabase.from('profiles')
+    .select('active_academic_year_id')
+    .eq('id', userData.user.id)
+    .single()
+  if (!profile?.active_academic_year_id) return { error: 'Tahun ajaran aktif belum diatur.' }
+  const activeYearId = profile.active_academic_year_id
 
   const title = String(formData.get('title') || '').trim()
   const description = String(formData.get('description') || '').trim()
@@ -174,6 +204,7 @@ export async function updateMaterial(id: string, formData: FormData) {
     })
     .eq('id', id)
     .eq('teacher_id', userData.user.id)
+    .eq('academic_year_id', activeYearId)
     .select('id')
     .maybeSingle()
 
