@@ -273,6 +273,7 @@ create table if not exists learning_materials (
   file_url text,
   file_type text, -- 'PDF', 'Video', 'Link', etc.
   meeting_id uuid references meetings(id) on delete set null,
+  academic_year_id uuid references academic_years(id) on delete cascade not null,
   teacher_id uuid references profiles(id) on delete cascade not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -327,6 +328,7 @@ create table if not exists documents (
   category text not null, -- 'Surat', 'Laporan', etc.
   file_url text,
   file_name text,
+  academic_year_id uuid references academic_years(id) on delete cascade not null,
   teacher_id uuid references profiles(id) on delete cascade not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
