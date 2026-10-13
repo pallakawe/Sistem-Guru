@@ -11,7 +11,7 @@ async function getActiveYearAndUser() {
   const { data: profile } = await supabase
     .from('profiles')
     .select('active_academic_year_id')
-    .eq('id', userData.user.id)
+    .eq('id', user.id)
     .single()
 
   return { supabase, user: userData.user, activeYearId: profile?.active_academic_year_id || null }
@@ -55,15 +55,16 @@ export async function getAssessmentsData() {
 }
 
 export async function getAssessmentScores(assessmentId: string) {
-  const supabase = await createClient()
-  const { data: userData } = await supabase.auth.getUser()
-  if (!userData?.user) return { error: 'Unauthorized' }
+  const { supabase, user, activeYearId } = await getActiveYearAndUser()
+  if (!user) return { error: 'Unauthorized' }
+  if (!activeYearId) return { error: 'Tahun ajaran aktif belum diatur.' }
 
   const { data: assessment, error: assessmentError } = await supabase
     .from('assessments')
     .select('id, class_id, classes(name), subjects(name)')
     .eq('id', assessmentId)
-    .eq('teacher_id', userData.user.id)
+    .eq('teacher_id', user.id)
+    .eq('academic_year_id', activeYearId)
     .maybeSingle()
 
   if (assessmentError) return { error: assessmentError.message }
@@ -74,7 +75,7 @@ export async function getAssessmentScores(assessmentId: string) {
       .from('students')
       .select('id, full_name')
       .eq('class_id', assessment.class_id)
-      .eq('teacher_id', userData.user.id)
+      .eq('teacher_id', user.id)
       .eq('is_active', true)
       .order('full_name'),
     supabase.from('assessment_scores').select('student_id, score, feedback').eq('assessment_id', assessmentId),
@@ -114,19 +115,23 @@ export async function createAssessment(formData: FormData) {
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard/assessments')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/documents')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
 
 export async function saveScores(assessmentId: string, scores: { student_id: string, score: number }[]) {
-  const supabase = await createClient()
-  const { data: userData } = await supabase.auth.getUser()
-  if (!userData?.user) return { error: 'Unauthorized' }
+  const { supabase, user, activeYearId } = await getActiveYearAndUser()
+  if (!user) return { error: 'Unauthorized' }
+  if (!activeYearId) return { error: 'Tahun ajaran aktif belum diatur.' }
 
   const { data: assessment, error: assessmentError } = await supabase
     .from('assessments')
     .select('id, class_id')
     .eq('id', assessmentId)
-    .eq('teacher_id', userData.user.id)
+    .eq('teacher_id', user.id)
+    .eq('academic_year_id', activeYearId)
     .maybeSingle()
 
   if (assessmentError) return { error: assessmentError.message }
@@ -144,7 +149,7 @@ export async function saveScores(assessmentId: string, scores: { student_id: str
     .select('id')
     .in('id', studentIds)
     .eq('class_id', assessment.class_id)
-    .eq('teacher_id', userData.user.id)
+    .eq('teacher_id', user.id)
 
   if (studentsError) return { error: studentsError.message }
   if ((allowedStudents || []).length !== studentIds.length) {
@@ -159,6 +164,9 @@ export async function saveScores(assessmentId: string, scores: { student_id: str
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard/assessments')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/documents')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
 
@@ -195,18 +203,22 @@ export async function updateAssessment(assessmentId: string, formData: FormData)
   if (!data) return { error: 'Komponen penilaian tidak ditemukan.' }
 
   revalidatePath('/dashboard/assessments')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/documents')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
 
 export async function deleteAssessment(assessmentId: string) {
-  const supabase = await createClient()
-  const { data: userData } = await supabase.auth.getUser()
-  if (!userData?.user) return { error: 'Unauthorized' }
+  const { supabase, user, activeYearId } = await getActiveYearAndUser()
+  if (!user) return { error: 'Unauthorized' }
+  if (!activeYearId) return { error: 'Tahun ajaran aktif belum diatur.' }
 
   const { data, error } = await supabase.from('assessments')
     .delete()
     .eq('id', assessmentId)
-    .eq('teacher_id', userData.user.id)
+    .eq('teacher_id', user.id)
+    .eq('academic_year_id', activeYearId)
     .select('id')
     .maybeSingle()
 
@@ -214,5 +226,8 @@ export async function deleteAssessment(assessmentId: string) {
   if (!data) return { error: 'Komponen penilaian tidak ditemukan.' }
 
   revalidatePath('/dashboard/assessments')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/documents')
+  revalidatePath('/dashboard/archive')
   return { success: true }
 }
