@@ -74,6 +74,7 @@ export default function DocumentsClient({ initialDocs }: { initialDocs: any[] })
   const [docs, setDocs] = useState<any[]>(initialDocs)
   const [search, setSearch] = useState("")
   const [filterCat, setFilterCat] = useState("all")
+  const [section, setSection] = useState("Daftar Hadir")
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -84,7 +85,7 @@ export default function DocumentsClient({ initialDocs }: { initialDocs: any[] })
   const filtered = useMemo(() => docs.filter((doc) => {
     const searchValue = search.toLowerCase()
     return (
-      (filterCat === "all" || doc.category === filterCat) &&
+      ((filterCat === "all" && doc.category === section) || doc.category === filterCat) &&
       (
         doc.title?.toLowerCase().includes(searchValue) ||
         doc.category?.toLowerCase().includes(searchValue) ||
@@ -142,11 +143,14 @@ export default function DocumentsClient({ initialDocs }: { initialDocs: any[] })
 
   return (
     <div className="flex flex-col gap-4 sm:gap-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Dokumen Administrasi</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight sm:text-3xl">
+            <Archive className="h-7 w-7 text-primary" />
+            Dokumen Administrasi
+          </h1>
           <p className="text-muted-foreground">
-            Pusat arsip otomatis untuk absensi, perangkat pembelajaran, jurnal, penilaian, bahan ajar, dan dokumen tambahan.
+            Pusat arsip administrasi dari absensi, perangkat pembelajaran, jurnal, penilaian, bahan ajar, dan dokumen tambahan.
           </p>
         </div>
         <Button onClick={() => setOpen(true)}>
@@ -154,43 +158,58 @@ export default function DocumentsClient({ initialDocs }: { initialDocs: any[] })
         </Button>
       </div>
 
-      <Card className="border-primary/20 bg-primary/5">
-        <CardContent className="flex gap-3 p-4 text-sm">
-          <Archive className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-          <p>
-            Arsip dari menu lain tampil otomatis di sini dan tetap dikelola dari menu asalnya. Tidak perlu upload file yang sama dua kali.
-          </p>
+      <Card>
+        <CardContent className="p-4 sm:p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Arsip administrasi yang sedang dilihat</p>
+              <h2 className="text-xl font-bold">{section}</h2>
+            </div>
+            <Badge variant="secondary">
+              {docs.filter((doc) => doc.category === section).length} arsip
+            </Badge>
+          </div>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        {PRIMARY_FOLDERS.map(({ category, icon: Icon }) => {
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {PRIMARY_FOLDERS.map(({ category }) => {
           const count = docs.filter((doc) => doc.category === category).length
           return (
-            <button
-              key={category}
-              type="button"
-              onClick={() => setFilterCat(filterCat === category ? "all" : category)}
-              className={[
-                "rounded-2xl border bg-card p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md",
-                filterCat === category ? "border-primary ring-2 ring-primary/10" : "",
-              ].join(" ")}
-            >
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Icon className="h-5 w-5" />
-              </div>
-              <p className="text-sm font-semibold leading-tight">{category}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{count} arsip</p>
-            </button>
+            <Card key={category}>
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold">{count}</p>
+                <p className="text-xs text-muted-foreground">{category}</p>
+              </CardContent>
+            </Card>
           )
         })}
+      </div>
+
+      <div className="w-full overflow-x-auto pb-1">
+        <div className="flex min-w-max gap-2">
+          {PRIMARY_FOLDERS.map(({ category, icon: Icon }) => (
+            <Button
+              key={category}
+              type="button"
+              variant={section === category ? "default" : "outline"}
+              onClick={() => {
+                setSection(category)
+                setFilterCat("all")
+              }}
+            >
+              <Icon className="mr-2 h-4 w-4" />
+              {category}
+            </Button>
+          ))}
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Cari arsip..."
+            placeholder={`Cari di ${section}...`}
             className="pl-10"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -199,13 +218,13 @@ export default function DocumentsClient({ initialDocs }: { initialDocs: any[] })
         <Select
           value={filterCat}
           onValueChange={(value) => setFilterCat(value ?? "all")}
-          items={[{ value: "all", label: "Semua Kategori" }, ...DOC_CATEGORIES.map((category) => ({ value: category, label: category }))]}
+          items={[{ value: "all", label: "Kategori Aktif" }, ...DOC_CATEGORIES.map((category) => ({ value: category, label: category }))]}
         >
           <SelectTrigger className="w-full sm:w-60">
-            <SelectValue placeholder="Semua Kategori" />
+            <SelectValue placeholder="Kategori Aktif" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Semua Kategori</SelectItem>
+            <SelectItem value="all">Kategori Aktif</SelectItem>
             {DOC_CATEGORIES.map((category) => (
               <SelectItem key={category} value={category}>{category}</SelectItem>
             ))}
