@@ -2,13 +2,14 @@
 'use client'
 
 import { useMemo, useState, useTransition } from "react"
-import { Archive, BookOpen, CalendarCheck, FileText, FolderOpen, GraduationCap, Library, Loader2, Users } from "lucide-react"
+import { Archive, BookOpen, CalendarCheck, FileDown, FileSpreadsheet, FileText, FolderOpen, GraduationCap, Library, Loader2, Users } from "lucide-react"
 import { getArchiveData } from "./actions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { exportRowsToExcel, exportRowsToPdf } from "@/lib/export-data"
 
 const SECTIONS = [
   { id: "classes", label: "Kelas & Siswa", icon: Users },
@@ -62,6 +63,72 @@ export default function ArchiveClient({ initialData }: { initialData: any }) {
     return map
   }, [data.students])
 
+  const archiveExport = useMemo(() => {
+    const yearLabel = data.selectedYear ? `${data.selectedYear.name} - Semester ${data.selectedYear.semester}` : "Tahun Ajaran"
+    const base = {
+      title: `Arsip ${SECTIONS.find((item) => item.id === section)?.label || "Tahun Ajaran"}`,
+      fileName: `arsip-${section}-${data.selectedYear?.name || "tahun-ajaran"}-${data.selectedYear?.semester || ""}`,
+      subtitle: `Tahun Ajaran: ${yearLabel}`,
+      official: data.printMeta || undefined,
+    }
+
+    if (section === "classes") return {
+      ...base,
+      headers: ["No", "Kelas", "Tingkat", "Wali Kelas", "Jumlah Siswa"],
+      rows: (data.classes || []).map((item: any, index: number) => [
+        index + 1, item.name, item.grade_level || "-", item.homeroom_teacher || "-",
+        (data.students || []).filter((student: any) => student.class_id === item.id).length,
+      ]),
+    }
+    if (section === "journals") return {
+      ...base,
+      headers: ["No", "Tanggal", "Kelas", "Mata Pelajaran", "Pertemuan", "Topik", "Metode"],
+      rows: (data.journals || []).map((item: any, index: number) => [
+        index + 1, item.meetings?.date || "-", item.meetings?.classes?.name || "-",
+        item.meetings?.subjects?.name || "-", item.meetings?.meeting_number || "-",
+        item.topic || "-", item.method || "-",
+      ]),
+    }
+    if (section === "attendance") return {
+      ...base,
+      headers: ["No", "Tanggal", "Kelas", "Hadir", "Sakit", "Izin", "Alpa", "Total"],
+      rows: (data.attendance || []).map((item: any, index: number) => [
+        index + 1, item.attendance_date || "-", item.classes?.name || "-",
+        item.counts?.H || 0, item.counts?.S || 0, item.counts?.I || 0, item.counts?.A || 0, item.total || 0,
+      ]),
+    }
+    if (section === "assessments") return {
+      ...base,
+      headers: ["No", "Judul", "Jenis", "Kelas", "Mata Pelajaran", "Bobot", "Jumlah Nilai"],
+      rows: (data.assessments || []).map((item: any, index: number) => [
+        index + 1, item.title || "-", item.type || "-", item.classes?.name || "-",
+        item.subjects?.name || "-", `${item.weight || 0}%`, (item.assessment_scores as any[])?.[0]?.count || 0,
+      ]),
+    }
+    if (section === "devices") return {
+      ...base,
+      headers: ["No", "Judul", "Kategori", "Mata Pelajaran", "Nama File"],
+      rows: (data.devices || []).map((item: any, index: number) => [
+        index + 1, item.title || "-", item.category || "-", item.subjects?.name || "-", item.file_name || "-",
+      ]),
+    }
+    if (section === "materials") return {
+      ...base,
+      headers: ["No", "Judul", "Mata Pelajaran", "Kelas", "Topik", "Tipe"],
+      rows: (data.materials || []).map((item: any, index: number) => [
+        index + 1, item.title || "-", item.subjects?.name || "-", item.classes?.name || "-",
+        item.topic || "-", item.file_type || "-",
+      ]),
+    }
+    return {
+      ...base,
+      headers: ["No", "Judul", "Kategori", "Nama File"],
+      rows: (data.documents || []).map((item: any, index: number) => [
+        index + 1, item.title || "-", item.category || "-", item.file_name || "-",
+      ]),
+    }
+  }, [data, section])
+
   if (!data.years || data.years.length === 0) {
     return (
       <div className="flex flex-col gap-6">
@@ -86,7 +153,8 @@ export default function ArchiveClient({ initialData }: { initialData: any }) {
           </p>
         </div>
 
-        <div className="w-full lg:w-72">
+        <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
+          <div className="w-full sm:w-72">
           <Select
             value={selectedYearId}
             onValueChange={changeYear}
@@ -106,6 +174,13 @@ export default function ArchiveClient({ initialData }: { initialData: any }) {
               ))}
             </SelectContent>
           </Select>
+          </div>
+          <Button variant="outline" onClick={() => exportRowsToExcel(archiveExport)}>
+            <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel
+          </Button>
+          <Button variant="outline" onClick={() => exportRowsToPdf(archiveExport)}>
+            <FileDown className="mr-2 h-4 w-4" /> PDF
+          </Button>
         </div>
       </div>
 
