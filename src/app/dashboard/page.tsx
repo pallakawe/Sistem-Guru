@@ -83,7 +83,7 @@ export default async function DashboardPage() {
 
   const recentJournalsQuery = supabase
     .from("teaching_journals")
-    .select("id, topic, created_at, meetings(classes(name))")
+    .select("id, topic, created_at, meetings!inner(academic_year_id, classes(name))")
     .eq("teacher_id", teacherId)
     .order("created_at", { ascending: false })
     .limit(4)
@@ -97,17 +97,24 @@ export default async function DashboardPage() {
 
   const recentDocumentsQuery = supabase
     .from("documents")
-    .select("id, title, created_at")
+    .select("id, title, created_at, academic_year_id")
     .eq("teacher_id", teacherId)
     .order("created_at", { ascending: false })
     .limit(4)
 
   const recentMaterialsQuery = supabase
     .from("learning_materials")
-    .select("id, title, created_at, classes(name)")
+    .select("id, title, created_at, academic_year_id, classes(name)")
     .eq("teacher_id", teacherId)
     .order("created_at", { ascending: false })
     .limit(4)
+
+  if (activeYearId) {
+    recentJournalsQuery.eq("meetings.academic_year_id", activeYearId)
+    recentAssessmentsQuery.eq("academic_year_id", activeYearId)
+    recentDocumentsQuery.eq("academic_year_id", activeYearId)
+    recentMaterialsQuery.eq("academic_year_id", activeYearId)
+  }
 
   const [
     classesRes,
