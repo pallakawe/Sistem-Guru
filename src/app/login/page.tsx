@@ -158,9 +158,9 @@ export default function LoginPage() {
           </form>
 
           <p className="text-center text-xs text-muted-foreground">
-            Belum punya akun? Hubungi{' '}
+            Belum punya akun? Silahkan klik nama{' '}
             <a
-              href="https://acesse.one/kl8g2pb"
+              href="https://www.instagram.com/rasyid_sddiq?xtok=NmR3eThld21uNGZo"
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-primary underline-offset-4 transition hover:underline"
