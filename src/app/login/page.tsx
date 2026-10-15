@@ -165,7 +165,7 @@ export default function LoginPage() {
               rel="noopener noreferrer"
               className="font-medium text-primary underline-offset-4 transition hover:underline"
             >
-              Hubungi developer
+              Rasyid
             </a>
           </p>
         </div>
