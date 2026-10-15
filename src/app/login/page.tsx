@@ -158,7 +158,15 @@ export default function LoginPage() {
           </form>
 
           <p className="text-center text-xs text-muted-foreground">
-            Belum punya akun? Hubungi administrator Website).
+            Belum punya akun?{' '}
+            <a
+              href="https://acesse.one/kl8g2pb"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-primary underline-offset-4 transition hover:underline"
+            >
+              Hubungi developer
+            </a>
           </p>
         </div>
       </div>
